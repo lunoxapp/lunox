@@ -1,0 +1,428 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function myEmail() {
+      return isSignedIn() && request.auth.token.email != null
+        && request.auth.token.email_verified == true
+        ? request.auth.token.email.lower()
+        : '';
+    }
+
+    // Без требования email_verified. Нужна для двух hardcoded-аккаунтов (Задача 3) и
+    // для selfBanOk (Задача 2/4: honeypot и creator tamper должны банить неподтверждённых).
+    function myEmailRaw() {
+      return isSignedIn() && request.auth.token.email != null
+        ? request.auth.token.email.lower()
+        : '';
+    }
+
+    function isHardcodedOwner() {
+      return myEmailRaw() == 'lunox.messenger@gmail.com' ||
+             myEmailRaw() == 'zabelinartem000@gmail.com';
+    }
+
+    function isCreatorEmail() {
+      return myEmailRaw() == 'lunox.messenger@gmail.com';
+    }
+
+    function adminsListHasRole(role) {
+      return exists(/databases/$(database)/documents/config/admins) &&
+        get(/databases/$(database)/documents/config/admins).data.admins
+          .hasAny([{'email': myEmail(), 'role': role}]);
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        isHardcodedOwner() ||
+        adminsListHasRole('creator') ||
+        adminsListHasRole('admin') ||
+        adminsListHasRole('moderator')
+      );
+    }
+
+    function isCreator() {
+      return isSignedIn() && (isCreatorEmail() || adminsListHasRole('creator'));
+    }
+
+    function banDataOk() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['uid', 'email', 'username', 'reason', 'bannedAt', 'bannedBy'])
+        && d.reason is string
+        && d.get('email', '') is string
+        && !(d.get('email', '') in ['lunox.messenger@gmail.com', 'zabelinartem000@gmail.com']);
+    }
+
+    function selfBanOk(keyEmail) {
+      let d = request.resource.data;
+      return isSignedIn() && !isHardcodedOwner()
+        && banDataOk()
+        && d.bannedBy == 'system'
+        && d.uid == request.auth.uid
+        && d.email == myEmailRaw()
+        && keyEmail == myEmailRaw();
+    }
+
+    function shopKeysTouched() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasAny(['luna', 'inventory', 'activeFrame', 'lastFrameBought']);
+    }
+
+    function frameCost(id) {
+      return id == 'none' ? 0 :
+             id == 'silver' ? 50 :
+             id == 'gold' ? 100 :
+             id == 'neon' ? 150 :
+             id == 'rainbow' ? 200 :
+             id == 'fire' ? 300 :
+             id == 'space' ? 350 :
+             id == 'ice' ? 150 :
+             id == 'lightning' ? 200 :
+             id == 'sakura' ? 200 :
+             id == 'dark' ? 350 :
+             id == 'dragon' ? 400 :
+             id == 'crown' ? 500 :
+             -1;
+    }
+
+    function frameSwitchAllowed(nFrame) {
+      return nFrame != 'creator' || isCreatorEmail();
+    }
+
+    function shopCreateOk() {
+      let d = request.resource.data;
+      return d.get('luna', 0) == 0 &&
+        d.get('inventory', ['none']) == ['none'] &&
+        d.get('activeFrame', 'none') == 'none' &&
+        !d.keys().hasAny(['lastFrameBought']);
+    }
+
+    function inviteRewardOk() {
+      let d = request.resource.data;
+      let o = resource.data;
+      let deltaCount = d.get('invitedCount', 0) - o.get('invitedCount', 0);
+      return deltaCount == 1 &&
+        d.get('luna', 0) == o.get('luna', 0) + 50 &&
+        d.get('inventory', ['none']) == o.get('inventory', ['none']) &&
+        d.get('activeFrame', 'none') == o.get('activeFrame', 'none');
+    }
+
+    function lunaSpendOk() {
+      let d = request.resource.data;
+      let o = resource.data;
+      return d.get('luna', 0) < o.get('luna', 0) && d.get('luna', 0) >= 0 &&
+        d.get('inventory', ['none']) == o.get('inventory', ['none']) &&
+        d.get('activeFrame', 'none') == o.get('activeFrame', 'none') &&
+        d.get('lastFrameBought', '') == o.get('lastFrameBought', '');
+    }
+
+    function promoLunaOk() {
+      let d = request.resource.data;
+      let o = resource.data;
+      let a = d.get('activatedPromocodes', []);
+      let n = a.size();
+      return n == o.get('activatedPromocodes', []).size() + 1 &&
+        a[n - 1].code is string &&
+        exists(/databases/$(database)/documents/promocodes/$(a[n - 1].code)) &&
+        getAfter(/databases/$(database)/documents/promocodes/$(a[n - 1].code)).data.reward is number &&
+        d.get('luna', 0) - o.get('luna', 0) ==
+          getAfter(/databases/$(database)/documents/promocodes/$(a[n - 1].code)).data.reward &&
+        request.auth.uid in getAfter(/databases/$(database)/documents/promocodes/$(a[n - 1].code)).data.usedBy &&
+        !(request.auth.uid in get(/databases/$(database)/documents/promocodes/$(a[n - 1].code)).data.usedBy) &&
+        d.get('inventory', ['none']) == o.get('inventory', ['none']) &&
+        d.get('activeFrame', 'none') == o.get('activeFrame', 'none') &&
+        d.get('lastFrameBought', '') == o.get('lastFrameBought', '');
+    }
+
+    function shopFieldsOk() {
+      let d = request.resource.data;
+      let o = resource.data;
+      let oLuna = o.get('luna', 0);
+      let nLuna = d.get('luna', 0);
+      let oInv = o.get('inventory', ['none']);
+      let nInv = d.get('inventory', ['none']);
+      let nFrame = d.get('activeFrame', 'none');
+      let bought = d.get('lastFrameBought', '');
+      return isCreatorEmail() ||
+        (
+          d.diff(o).affectedKeys()
+            .hasOnly(['luna', 'inventory', 'activeFrame', 'lastFrameBought', 'invitedCount', 'activatedPromocodes']) &&
+          (
+            (
+              nLuna == oLuna && nInv == oInv && nFrame in nInv &&
+              bought == o.get('lastFrameBought', '') &&
+              frameSwitchAllowed(nFrame)
+            ) ||
+            (
+              bought is string && frameCost(bought) >= 0 && !(bought in oInv) &&
+              nInv == oInv.concat([bought]) &&
+              oLuna >= frameCost(bought) && nLuna == oLuna - frameCost(bought) &&
+              nFrame in nInv &&
+              frameSwitchAllowed(nFrame)
+            ) ||
+            inviteRewardOk() ||
+            lunaSpendOk() ||
+            promoLunaOk()
+          )
+        );
+    }
+
+    match /usernames/{username} {
+      allow read: if true;
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow update: if false;
+      allow delete: if isSignedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    match /invites/{code} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.keys().hasOnly(['createdBy', 'createdAt', 'usedBy', 'usedAt', 'rewarded'])
+        && request.resource.data.usedBy == null
+        && request.resource.data.rewarded == false;
+      allow update: if isSignedIn() && (
+        (
+          resource.data.createdBy == request.auth.uid &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rewarded']) &&
+          request.resource.data.rewarded == true
+        ) ||
+        (
+          resource.data.usedBy == null &&
+          request.resource.data.usedBy == request.auth.uid &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['usedBy', 'usedAt'])
+        )
+      );
+      allow delete: if false;
+    }
+
+    match /banned_users/{uid} {
+      allow get: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow list: if isAdmin();
+      allow create: if (isAdmin() && banDataOk())
+        || (request.auth.uid == uid && selfBanOk(myEmailRaw()));
+      allow update: if isAdmin() && banDataOk();
+      allow delete: if isAdmin();
+    }
+
+    match /banned_emails/{emailKey} {
+      allow get: if true;
+      allow list: if isAdmin();
+      allow create: if (isAdmin() && banDataOk())
+        || selfBanOk(emailKey);
+      allow update: if isAdmin() && banDataOk();
+      allow delete: if isAdmin();
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == userId && shopCreateOk();
+      allow update: if isSignedIn() && (
+        (
+          request.auth.uid == userId &&
+          !request.resource.data.diff(resource.data).affectedKeys()
+            .hasAny(['accountDisabled', 'accountDisabledReason', 'strikes', 'strikesHistory']) &&
+          (
+            (
+              !shopKeysTouched() &&
+              request.resource.data.diff(resource.data).affectedKeys()
+                .hasOnly([
+                  'name', 'nameLower', 'username', 'bio', 'phone', 'city', 'link', 'website', 'status',
+                  'avatarUrl', 'bannerUrl', 'activatedPromocodes', 'online', 'lastSeen',
+                  'activeBg', 'activeBgUrl', 'bgInventory', 'ownedMeta', 'inviteCode', 'autoReply',
+                  'privacyStatus', 'privacyMessages', 'fcmTokens', 'favorites', 'nickStyle',
+                  'blockedUsers', 'appearance', 'nameChanges', 'usernameChanges',
+                  'ownedAvatars', 'ownedBgs', 'ownedFrames', 'ownedGifts', 'ownedExclusives',
+                  'ownedStickers', 'ownedThemes', 'ownedEffects'
+                ])
+            ) ||
+            (shopKeysTouched() && shopFieldsOk())
+          )
+        ) ||
+        (isAdmin() && (
+          isCreatorEmail() ||
+          !shopKeysTouched()
+        ))
+      );
+      allow delete: if isSignedIn() && (
+        request.auth.uid == userId ||
+        isCreatorEmail()
+      );
+    }
+
+    match /chats/{chatId} {
+      allow read: if isSignedIn() && (resource == null || request.auth.uid in resource.data.members);
+      allow create: if isSignedIn() && request.auth.uid in request.resource.data.members;
+      allow update: if isSignedIn()
+        && request.auth.uid in resource.data.members
+        && (
+          !resource.data.isGroup
+          || !request.resource.data.diff(resource.data).affectedKeys().hasAny(['groupName', 'groupAvatarUrl'])
+          || request.auth.uid in resource.data.admins
+          || request.auth.uid == resource.data.createdBy
+        );
+      allow delete: if false;
+
+      match /messages/{messageId} {
+        allow read: if isSignedIn()
+          && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.members;
+        allow create: if isSignedIn()
+          && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.members
+          && request.resource.data.senderId == request.auth.uid;
+        allow update: if isSignedIn()
+          && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.members
+          && (
+            (
+              request.auth.uid == resource.data.senderId &&
+              request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'editedAt'])
+            ) ||
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions']) ||
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readBy']) ||
+            (
+              request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                'deletedForEveryone', 'text', 'imageUrl', 'gifUrl', 'stickerUrl',
+                'fileUrl', 'voiceFileId', 'videoCircleFileId', 'location', 'contact', 'reactions'
+              ]) &&
+              request.resource.data.deletedForEveryone == true
+            ) ||
+            (
+              request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deletedFor']) &&
+              request.resource.data.deletedFor.hasAll(resource.data.get('deletedFor', [])) &&
+              request.auth.uid in request.resource.data.deletedFor
+            )
+          );
+        allow delete: if isSignedIn() && request.auth.uid == resource.data.senderId;
+      }
+
+      match /typing/{uid} {
+        allow read: if isSignedIn()
+          && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.members;
+        allow write: if isSignedIn() && request.auth.uid == uid;
+        allow delete: if isSignedIn() && request.auth.uid == uid;
+      }
+    }
+
+    match /config/admins {
+      allow read: if isSignedIn();
+      allow create, update: if isCreatorEmail();
+      allow delete: if false;
+    }
+
+    match /support_tickets/{uid} {
+      allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow create, update: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow delete: if isCreator();
+    }
+
+    match /support_messages/{messageId} {
+      allow read: if isSignedIn()
+        && (request.auth.uid == resource.data.userId || isAdmin());
+      allow create: if isSignedIn() && (
+        (request.resource.data.userId == request.auth.uid && request.resource.data.sender == 'user') ||
+        (isAdmin() && request.resource.data.sender == 'support')
+      );
+      allow update, delete: if false;
+    }
+
+    match /security_ip_registrations/{ip} {
+      allow read: if true;
+      allow create, update: if request.resource.data.keys().hasOnly(['timestamps', 'updatedAt'])
+        && request.resource.data.timestamps is list
+        && request.resource.data.timestamps.size() <= 50
+        && request.resource.data.updatedAt is number
+        && request.resource.data.updatedAt <= request.time.toMillis() + 60000
+        && request.resource.data.updatedAt >= request.time.toMillis() - 5 * 60 * 1000;
+      allow delete: if false;
+    }
+
+    match /security_login_attempts/{email} {
+      allow read: if true;
+      allow create, update: if request.resource.data.keys().hasOnly(['count', 'windowStart', 'lockedUntil'])
+        && request.resource.data.count is number
+        && request.resource.data.count >= 0
+        && request.resource.data.count <= 1000
+        && request.resource.data.windowStart is number
+        && (
+          request.resource.data.lockedUntil == null ||
+          (
+            request.resource.data.lockedUntil is number &&
+            request.resource.data.lockedUntil <= request.time.toMillis() + 15 * 60 * 1000
+          )
+        );
+      allow delete: if isSignedIn();
+    }
+
+    match /logs/{logId} {
+      allow create: if isSignedIn();
+      allow read: if isSignedIn() && isHardcodedOwner();
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    match /mail/{id} {
+      allow create: if isSignedIn()
+        && request.resource.data.keys().hasOnly(['to', 'message'])
+        && request.resource.data.to == ['lunox.messenger@gmail.com']
+        && request.resource.data.message.keys().hasOnly(['subject', 'text'])
+        && request.resource.data.message.subject is string
+        && request.resource.data.message.text is string;
+      allow read: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    match /roleChangeRequests/{id} {
+      allow create: if isSignedIn() && request.resource.data.requestedBy == request.auth.uid;
+      allow read: if isSignedIn() && isHardcodedOwner();
+      allow update: if isSignedIn() && resource.data.requestedBy == request.auth.uid;
+      allow delete: if false;
+    }
+
+    match /ai_chats/{uid} {
+      match /chats/{chatId} {
+        allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+        allow create, update, delete: if isSignedIn() && request.auth.uid == uid;
+      }
+    }
+
+    match /raffles/{id} {
+      allow read, create, update, delete: if isSignedIn() && isCreatorEmail();
+    }
+
+    match /promocodes/{code} {
+      allow read: if isSignedIn();
+      allow create, delete: if isSignedIn() && isCreatorEmail();
+      allow update: if isSignedIn() && (
+        isCreatorEmail() ||
+        (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['usedCount', 'usedBy']) &&
+          request.resource.data.usedCount == resource.data.usedCount + 1 &&
+          request.resource.data.usedBy.hasAll(resource.data.usedBy) &&
+          request.auth.uid in request.resource.data.usedBy &&
+          !(request.auth.uid in resource.data.usedBy) &&
+          resource.data.active == true &&
+          (resource.data.expiresAt == null || resource.data.expiresAt > request.time) &&
+          resource.data.usedCount < resource.data.maxUses
+        )
+      );
+    }
+
+    match /config/shop {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && isCreatorEmail();
+    }
+
+    match /shop_content/{id} {
+      allow read: if isSignedIn();
+      allow create, delete: if isSignedIn() && isCreatorEmail();
+      allow update: if isSignedIn() && isCreatorEmail();
+    }
+  }
+}

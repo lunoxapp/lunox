@@ -1,0 +1,40 @@
+# Lunox — статический сайт, без сборки. Этот файл не обязателен для
+# деплоя через drag-and-drop в Netlify UI, но полезен, если вы подключите
+# репозиторий (Netlify будет знать, что публиковать корень как есть).
+[build]
+  publish = "."
+  functions = "netlify/functions"
+
+
+
+[[headers]]
+  # Service worker обязан отдаваться без агрессивного кеширования браузером,
+  # иначе обновлённая версия sw.js может не подхватиться сразу.
+  for = "/firebase-messaging-sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  # Тот же принцип для PWA service worker'а Lunox: браузер должен всегда
+  # перепроверять файл, иначе обновления кэша не долетят до пользователей.
+  for = "/service-worker.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  # manifest.json отдаём с правильным типом на случай нестандартной настройки CDN.
+  for = "/manifest.json"
+  [headers.values]
+    Content-Type = "application/manifest+json"
+    Cache-Control = "no-cache"
+
+[[headers]]
+  # index.html всегда перепроверяется — иначе браузер/CDN может отдавать старую версию.
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/"
+  [headers.values]
+    Cache-Control = "no-cache"
