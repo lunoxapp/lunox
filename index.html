@@ -1233,7 +1233,7 @@ body.theme-light .msg-row.theirs .bubble::before{background:linear-gradient(135d
         <div class="search-bar">
           <div class="search-bar-inner">
             <span class="search-icon"><svg class="tg-ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-            <input type="text" id="input-search-users" placeholder="Поиск по @username или имени…" autocomplete="off">
+            <input type="text" id="input-search-users" placeholder="Поиск по @username…" autocomplete="off">
           </div>
           <button class="icon-btn" id="btn-new-group" title="Новая группа"><svg class="tg-ic" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg></button>
         </div>
@@ -2954,7 +2954,7 @@ async function callGigaChat(messages, model, attachment) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), GIGACHAT_TIMEOUT_MS);
   try {
-    const resp = await fetch('/.netlify/functions/gigachat', {
+    const resp = await fetch('https://lunox-gigachat.lunox-messenger.workers.dev', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       // attachment: { data: <base64 без префикса data:>, mimeType, filename } —
@@ -2995,7 +2995,7 @@ async function callGigaChatImage(prompt, model) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), GIGACHAT_IMAGE_TIMEOUT_MS);
   try {
-    const resp = await fetch('/.netlify/functions/gigachat', {
+    const resp = await fetch('https://lunox-gigachat.lunox-messenger.workers.dev', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ mode: 'image', prompt, model }),
@@ -3033,7 +3033,7 @@ async function callGemini(messages, model, attachment) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
   try {
-    const resp = await fetch('/.netlify/functions/gemini', {
+    const resp = await fetch('https://lunox-gemini.lunox-messenger.workers.dev', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(attachment ? { messages, model, attachment } : { messages, model }),
@@ -3067,7 +3067,7 @@ async function callGeminiImage(prompt) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), GEMINI_IMAGE_TIMEOUT_MS);
   try {
-    const resp = await fetch('/.netlify/functions/gemini', {
+    const resp = await fetch('https://lunox-gemini.lunox-messenger.workers.dev', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ mode: 'image', prompt }),
@@ -11030,55 +11030,96 @@ auth.onAuthStateChanged(async (user) => {
   failInitialLoad(err);
 });
 
+// v33 (закрытие утечки базы users — see firestore.rules): раньше здесь был
+// db.collection('users').onSnapshot(...) без фильтра — слушатель на ВСЮ
+// коллекцию, ровно то, чем базу и слили. Firestore rules теперь запрещают
+// list/onSnapshot по users без фильтра (allow list: if false), поэтому
+// вместо одной общей подписки — точечная подписка на свой профиль плюс
+// на профили собеседников из уже отфильтрованного по своим чатам chatsCache
+// (см. listenToChats/syncUsersCacheFromChats ниже). allUsersCache/allUsersMap
+// остаются как и раньше — просто наполняются не «всеми», а только теми, с
+// кем уже есть общий чат (то есть ровно тем набором, который реально нужен
+// интерфейсу: имена в списке чатов, аватарки собеседников и т.п.).
 function listenToUsers() {
   if (unsubscribeUsers) unsubscribeUsers();
   selfDocSeen = false;
-  unsubscribeUsers = db.collection('users').onSnapshot((snapshot) => {
-    allUsersCache = [];
-    allUsersMap = {};
-    let sawSelf = false;
-    snapshot.forEach((doc) => {
-      const data = { ...doc.data(), uid: doc.id };
-      allUsersMap[doc.id] = data;
-      if (doc.id === currentUser.uid) {
-        sawSelf = true; selfDocSeen = true;
-        currentUserData = data;
-        applyAutoReplyUI();
-        applyMyProfileFieldsToUI(data);
-        applyAppearanceFromFirestore(data);
+  unsubscribeUsers = db.collection('users').doc(currentUser.uid).onSnapshot((doc) => {
+    if (!doc.exists) {
+      if (selfDocSeen) { selfDocSeen = false; handleProfileRemoved(); }
+      return;
+    }
+    selfDocSeen = true;
+    const data = { ...doc.data(), uid: doc.id };
+    allUsersMap[doc.id] = data;
+    currentUserData = data;
+    applyAutoReplyUI();
+    applyMyProfileFieldsToUI(data);
+    applyAppearanceFromFirestore(data);
 
-        if (data.accountDisabled && !(data.accountDisabledReason === 'strikes_auto' && activeStrikeEntries(data.strikesHistory).length < STRIKE_LIMIT)) {
-          stopPresence().finally(() => {
-            let msg = 'Ваш аккаунт заблокирован администратором.';
-            if (data.accountDisabledReason === 'fast_admin_access') {
-              msg = 'Ваш аккаунт заблокирован за подозрительную активность. Обратитесь к Создателю.';
-            } else if (data.accountDisabledReason === 'creator_tamper') {
-              msg = 'Ваш аккаунт заблокирован за попытку несанкционированного изменения роли.';
-            } else if (data.accountDisabledReason === 'strikes_auto') {
-              msg = 'Ваш аккаунт заблокирован за 3 нарушения. Обратитесь в поддержку.';
-            } else if (data.accountDisabledReason === 'serious_violation') {
-              msg = 'Ваш аккаунт заблокирован за серьёзное нарушение правил Lunox. Обратитесь в поддержку.';
-            }
-            alert(msg);
-            auth.signOut();
-          });
+    if (data.accountDisabled && !(data.accountDisabledReason === 'strikes_auto' && activeStrikeEntries(data.strikesHistory).length < STRIKE_LIMIT)) {
+      stopPresence().finally(() => {
+        let msg = 'Ваш аккаунт заблокирован администратором.';
+        if (data.accountDisabledReason === 'fast_admin_access') {
+          msg = 'Ваш аккаунт заблокирован за подозрительную активность. Обратитесь к Создателю.';
+        } else if (data.accountDisabledReason === 'creator_tamper') {
+          msg = 'Ваш аккаунт заблокирован за попытку несанкционированного изменения роли.';
+        } else if (data.accountDisabledReason === 'strikes_auto') {
+          msg = 'Ваш аккаунт заблокирован за 3 нарушения. Обратитесь в поддержку.';
+        } else if (data.accountDisabledReason === 'serious_violation') {
+          msg = 'Ваш аккаунт заблокирован за серьёзное нарушение правил Lunox. Обратитесь в поддержку.';
         }
-        maybeRestoreNickname(doc.id, data);
-        maybeGenerateUsername(doc.id, data);
-        maybeEnsureInviteCode(doc.id, data);
-        maybeClaimInviteRewards(doc.id, data);
-        ensureShopConfigLoaded();
-        return;
-      }
-      allUsersCache.push(data);
-      maybeRestoreNickname(doc.id, data);
-    });
-    // v23: наш профиль был и пропал (удалён админом) → выходим, а не воссоздаём его.
-    if (selfDocSeen && !sawSelf && !snapshot.metadata.fromCache) { selfDocSeen = false; handleProfileRemoved(); }
+        alert(msg);
+        auth.signOut();
+      });
+    }
+    maybeRestoreNickname(doc.id, data);
+    maybeGenerateUsername(doc.id, data);
+    maybeEnsureInviteCode(doc.id, data);
+    maybeClaimInviteRewards(doc.id, data);
+    ensureShopConfigLoaded();
     syncTrustedUids();
     markTabDirty('tab-chats');
     markTabDirty('tab-admin');
   }, (err) => console.error(err));
+}
+
+// Собеседники, чьи профили уже разрешено читать по rules (get по known uid —
+// есть общий чат): держим для каждого лёгкую живую подписку и складываем в
+// тот же allUsersCache/allUsersMap, которым пользуется весь остальной код
+// (рендер списка чатов, профиль собеседника и т.д.). Вызывается из
+// listenToChats() при каждом обновлении chatsCache.
+const userProfileSubs = new Map(); // uid -> unsubscribe
+function syncUsersCacheFromChats() {
+  const wantedUids = new Set();
+  (chatsCache || []).forEach((c) => {
+    (c.members || []).forEach((uid) => {
+      if (uid !== currentUser.uid && uid !== DEEPSEEK_BOT_UID) wantedUids.add(uid);
+    });
+  });
+
+  // Отписываемся от тех, с кем общих чатов больше нет (например, чат удалён).
+  for (const uid of Array.from(userProfileSubs.keys())) {
+    if (!wantedUids.has(uid)) {
+      userProfileSubs.get(uid)();
+      userProfileSubs.delete(uid);
+      delete allUsersMap[uid];
+      allUsersCache = allUsersCache.filter((u) => u.uid !== uid);
+    }
+  }
+
+  wantedUids.forEach((uid) => {
+    if (userProfileSubs.has(uid)) return;
+    const unsub = db.collection('users').doc(uid).onSnapshot((doc) => {
+      if (!doc.exists) return;
+      const data = { ...doc.data(), uid };
+      allUsersMap[uid] = data;
+      const idx = allUsersCache.findIndex((u) => u.uid === uid);
+      if (idx >= 0) allUsersCache[idx] = data; else allUsersCache.push(data);
+      maybeRestoreNickname(uid, data);
+      markTabDirty('tab-chats');
+    }, (err) => console.warn('[Lunox] Не удалось подписаться на профиль собеседника:', err));
+    userProfileSubs.set(uid, unsub);
+  });
 }
 
 // Список uid, для которых восстановление никнейма уже отправлено в этой
@@ -11538,7 +11579,7 @@ async function sendTelegramAlert(text, kind) {
   try {
     let idToken = null;
     try { if (auth && auth.currentUser) idToken = await auth.currentUser.getIdToken(); } catch (e) {}
-    const resp = await fetch('/.netlify/functions/tg-alert', {
+    const resp = await fetch('https://lunox-alert.lunox-messenger.workers.dev', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text: String(text || '').slice(0, 1500), kind: kind || 'event', idToken })
@@ -12523,17 +12564,9 @@ function normalizeSearchText(str) {
   return (str || '').toString().trim().toLowerCase();
 }
 
-function filterNicknameMatches(users, lowerQuery) {
-  return users
-    .filter(u => !currentUser || u.uid !== currentUser.uid)
-    .filter(u => !isBlockedByMe(u.uid))
-    .map(u => ({ ...u, nickname: u.name || 'Пользователь' }))
-    .filter(u => normalizeSearchText(u.nickname).startsWith(lowerQuery))
-    .sort((a, b) => a.nickname.localeCompare(b.nickname, 'ru'))
-    .slice(0, 25);
-}
-
-// Поиск по @username (задача «Поиск по @username» в Контактах).
+// Поиск в Контактах ведётся только по @username (см. firestore.rules — list
+// по users открыт лишь для invitedBy==self, поэтому поиск по имени среди
+// всех пользователей убран целиком).
 function filterUsernameMatches(users, lowerQuery) {
   return users
     .filter(u => !currentUser || u.uid !== currentUser.uid)
@@ -12599,7 +12632,7 @@ function renderUserSearchResults(users, emptyMessage, searchMode) {
   listEl.innerHTML = '';
 
   if (users.length === 0) {
-    if (searchMode) renderContactsState(emptyMessage || 'Никого не найдено', { icon: CONTACTS_NOT_FOUND_ICON, sub: 'Проверьте @username или имя' });
+    if (searchMode) renderContactsState(emptyMessage || 'Никого не найдено', { icon: CONTACTS_NOT_FOUND_ICON, sub: 'Проверьте @username' });
     else renderContactsState(emptyMessage || 'Никого не найдено');
     return;
   }
@@ -12648,67 +12681,13 @@ function renderUserSearchResults(users, emptyMessage, searchMode) {
   });
 }
 
-async function searchUsersByNickname(query) {
-  const requestId = ++contactsSearchRequestId;
-  const lowerQuery = normalizeSearchText(query);
-
-  // Основной путь: мгновенный поиск по уже загруженному в реальном времени кэшу.
-  let matches = filterNicknameMatches(allUsersCache, lowerQuery);
-
-  if (matches.length > 0 || allUsersCache.length > 0) {
-    if (requestId !== contactsSearchRequestId) return;
-    renderUserSearchResults(matches);
-    return;
-  }
-
-  // Резервный путь: кэш ещё не готов (например, доля секунды сразу после входа) —
-  // спрашиваем Firestore напрямую, чтобы поиск не завис пустым результатом.
-  renderContactsState('Ищем «' + query + '»…', { loading: true });
-  try {
-    const snap = await db.collection('users').limit(200).get();
-    if (requestId !== contactsSearchRequestId) return; // пришёл более новый запрос — этот результат уже не нужен
-    const fetched = snap.docs.map(doc => ({ ...doc.data(), uid: doc.id }));
-    matches = filterNicknameMatches(fetched, lowerQuery);
-    renderUserSearchResults(matches);
-  } catch (e) {
-    if (requestId !== contactsSearchRequestId) return;
-    console.warn('[Lunox] Ошибка поиска пользователей:', e);
-    renderContactsState('Не удалось выполнить поиск. Попробуйте ещё раз.');
-  }
-}
-
-// Поиск по @username: тот же принцип, что и searchUsersByNickname (сначала кэш,
-// при пустом кэше — резервный запрос к Firestore), только фильтр по полю username.
-async function searchUsersByUsername(rawQuery) {
-  const requestId = ++contactsSearchRequestId;
-  const lowerQuery = normalizeSearchText(rawQuery);
-  if (!lowerQuery) { renderContactsState('Введите @username для поиска.'); return; }
-
-  let matches = filterUsernameMatches(allUsersCache, lowerQuery);
-  if (matches.length > 0 || allUsersCache.length > 0) {
-    if (requestId !== contactsSearchRequestId) return;
-    renderUserSearchResults(matches, `Пользователь @${rawQuery} не найден`);
-    return;
-  }
-
-  renderContactsState('Ищем «@' + rawQuery + '»…', { loading: true });
-  try {
-    const snap = await db.collection('users').limit(200).get();
-    if (requestId !== contactsSearchRequestId) return;
-    const fetched = snap.docs.map(doc => ({ ...doc.data(), uid: doc.id }));
-    matches = filterUsernameMatches(fetched, lowerQuery);
-    renderUserSearchResults(matches, `Пользователь @${rawQuery} не найден`);
-  } catch (e) {
-    if (requestId !== contactsSearchRequestId) return;
-    console.warn('[Lunox] Ошибка поиска по @username:', e);
-    renderContactsState('Не удалось выполнить поиск. Попробуйте ещё раз.');
-  }
-}
-
 // Единый поиск как в Telegram: по @username И по имени. «@…» — только по username.
+// Ранжирование контактов по @username. Поиск по имени убран намеренно (см.
+// firestore.rules — list по users открыт только на invitedBy==self, поэтому
+// полноценный поиск по имени среди собеседников оставлять смысла нет: он
+// путал бы пользователя, работая только для узкого круга уже открытых чатов).
 function filterContactMatches(users, rawQuery) {
   const q = normalizeSearchText(rawQuery);
-  const atOnly = q.startsWith('@');
   const uq = q.replace(/^@+/, '');
   if (!uq) return [];
   const ranked = [];
@@ -12717,12 +12696,9 @@ function filterContactMatches(users, rawQuery) {
     if (isBlockedByMe(u.uid)) return;
     const uname = (u.username || '').toLowerCase();
     const nickname = u.name || 'Пользователь';
-    const nm = normalizeSearchText(nickname);
     let rank = -1;
     if (uname && uname === uq) rank = 0;
     else if (uname && uname.startsWith(uq)) rank = 1;
-    else if (!atOnly && nm.startsWith(uq)) rank = 2;
-    else if (!atOnly && nm.split(/\s+/).some((w) => w.startsWith(uq))) rank = 3;
     if (rank < 0) return;
     ranked.push({ rank, user: { ...u, nickname } });
   });
@@ -12732,20 +12708,32 @@ function filterContactMatches(users, rawQuery) {
 
 async function searchContactsUnified(query) {
   const requestId = ++contactsSearchRequestId;
-  if (allUsersCache.length > 0) {
-    renderUserSearchResults(filterContactMatches(allUsersCache, query), 'Никого не найдено', true);
-    return;
-  }
-  // Кэш ещё не готов — спрашиваем Firestore напрямую (спиннер уже показан).
+  const localMatches = filterContactMatches(allUsersCache, query);
+  renderUserSearchResults(localMatches, 'Никого не найдено', true);
+  if (localMatches.length > 0) return;
+
+  // v33: локальный кэш (собеседники по общим чатам) ничего не нашёл — раньше
+  // здесь был db.collection('users').limit(200).get() (list без фильтра,
+  // теперь запрещён в firestore.rules). Если запрос похож на @username —
+  // пробуем точный point-get через usernames/{exact}, как в
+  // searchUsersByUsername. Поиск по обрывку имени среди ВСЕХ пользователей
+  // сервиса намеренно больше недоступен — это и есть утечка базы из задачи.
+  const q = normalizeSearchText(query).replace(/^@+/, '');
+  if (!q) return;
   try {
-    const snap = await db.collection('users').limit(200).get();
+    const unameSnap = await db.collection('usernames').doc(q).get();
     if (requestId !== contactsSearchRequestId) return;
-    const fetched = snap.docs.map((doc) => ({ ...doc.data(), uid: doc.id }));
-    renderUserSearchResults(filterContactMatches(fetched, query), 'Никого не найдено', true);
+    if (!unameSnap.exists) return;
+    const uid = unameSnap.data().uid;
+    if (uid === currentUser.uid || isBlockedByMe(uid)) return;
+    const userSnap = await db.collection('users').doc(uid).get();
+    if (requestId !== contactsSearchRequestId) return;
+    if (!userSnap.exists) return;
+    const found = { ...userSnap.data(), uid, nickname: userSnap.data().name || 'Пользователь' };
+    renderUserSearchResults([found], 'Никого не найдено', true);
   } catch (e) {
     if (requestId !== contactsSearchRequestId) return;
     console.warn('[Lunox] Ошибка поиска пользователей:', e);
-    renderContactsState('Не удалось выполнить поиск. Попробуйте ещё раз.');
   }
 }
 
@@ -12755,7 +12743,7 @@ function handleContactsSearchInput() {
   contactsSearchRequestId++; // отменяем любой ещё не завершённый запрос
   if (!query) {
     // Пустое поле — показываем только тех, с кем уже есть переписка (как в Telegram).
-    renderUserSearchResults(getExistingChatContactsSorted(), 'Пока нет ни одного чата. Введите @username или имя, чтобы найти собеседника.');
+    renderUserSearchResults(getExistingChatContactsSorted(), 'Пока нет ни одного чата. Введите @username, чтобы найти собеседника.');
     return;
   }
   renderContactsState('', { loading: true });
@@ -13041,6 +13029,7 @@ function listenToChats() {
     .onSnapshot((snapshot) => {
       chatsCache = [];
       snapshot.forEach((doc) => chatsCache.push({ id: doc.id, ...doc.data() }));
+      syncUsersCacheFromChats(); // v33: держим allUsersCache/Map в синхроне только с реальными собеседниками
       markTabDirty('tab-chats');
       markTabDirty('tab-contacts'); // список «с кем есть чат» на пустом поиске зависит от chatsCache
       updateGlobalUnreadBadge();

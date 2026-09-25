@@ -151,6 +151,13 @@ service cloud.firestore {
       let nInv = d.get('inventory', ['none']);
       let nFrame = d.get('activeFrame', 'none');
       let bought = d.get('lastFrameBought', '');
+      // НАМЕРЕННО: isCreatorEmail() обходит все проверки ниже (лимиты цен,
+      // владение рамкой и т.д.) — создатель может вручную менять
+      // luna/inventory/activeFrame ЛЮБОГО пользователя, не только своё,
+      // через update на users/{userId} (см. блок match /users/{userId} —
+      // там isAdmin() && isCreatorEmail() тоже полностью пропускает
+      // shopKeysTouched()). Это осознанный админский доступ к балансу
+      // (поддержка, ручные компенсации/коррекции), а не дыра.
       return isCreatorEmail() ||
         (
           d.diff(o).affectedKeys()
@@ -222,7 +229,21 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow read: if isSignedIn();
+      // Точечное чтение (get по известному uid — свой профиль, участник чата,
+      // результат usernames/{name} lookup) разрешено всем вошедшим: чтобы
+      // получить чужой get, нужно уже знать его uid, так что это не даёт
+      // перебрать/слить базу. А вот list/onSnapshot по всей коллекции без
+      // where — ровно то, чем качали базу — запрещён полностью.
+      allow get: if isSignedIn();
+      // Единственное разрешённое групповое чтение — список «кого я пригласил»
+      // (своя страница инвайтов). Официальный паттерн Firestore rules для
+      // list: проверяем resource.data (а не сам запрос) — движок Firestore
+      // сам отклонит list, если хоть один возвращаемый документ не проходит
+      // это условие, а значит клиент обязан явно передать
+      // .where('invitedBy','==', myUid) — иначе весь список отклоняется.
+      // Вытащить чужие/все профили так нельзя: под это условие попадают
+      // только документы с invitedBy == request.auth.uid.
+      allow list: if isSignedIn() && resource.data.invitedBy == request.auth.uid;
       allow create: if isSignedIn() && request.auth.uid == userId && shopCreateOk();
       allow update: if isSignedIn() && (
         (
