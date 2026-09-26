@@ -1,6 +1,7 @@
 {
   "name": "Lunox",
   "short_name": "Lunox",
+  "version": "1.5.0",
   "description": "Приватный мессенджер с ИИ",
   "start_url": "/",
   "scope": "/",
