@@ -59,7 +59,7 @@ return isSignedIn() && !isHardcodedOwner()
 }
 function shopKeysTouched() {
 return request.resource.data.diff(resource.data).affectedKeys()
-.hasAny(['luna', 'inventory', 'activeFrame', 'lastFrameBought']);
+.hasAny(['luna', 'inventory', 'activeFrame', 'lastFrameBought', 'activatedPromocodes']);
 }
 function frameCost(id) {
 return id == 'none' ? 0 :
@@ -121,6 +121,25 @@ d.get('inventory', ['none']) == o.get('inventory', ['none']) &&
 d.get('activeFrame', 'none') == o.get('activeFrame', 'none') &&
 d.get('lastFrameBought', '') == o.get('lastFrameBought', '');
 }
+function promoItemOk() {
+let d = request.resource.data;
+let o = resource.data;
+let a = d.get('activatedPromocodes', []);
+let n = a.size();
+let ownedFields = ['ownedAvatars', 'ownedBgs', 'ownedFrames', 'ownedGifts', 'ownedExclusives', 'ownedStickers', 'ownedThemes', 'ownedEffects'];
+return n == o.get('activatedPromocodes', []).size() + 1 &&
+a[n - 1].code is string &&
+a[n - 1].reward is string &&
+exists(/databases/$(database)/documents/promocodes/$(a[n - 1].code)) &&
+getAfter(/databases/$(database)/documents/promocodes/$(a[n - 1].code)).data.reward == a[n - 1].reward &&
+request.auth.uid in getAfter(/databases/$(database)/documents/promocodes/$(a[n - 1].code)).data.usedBy &&
+!(request.auth.uid in get(/databases/$(database)/documents/promocodes/$(a[n - 1].code)).data.usedBy) &&
+d.get('luna', 0) == o.get('luna', 0) &&
+d.get('inventory', ['none']) == o.get('inventory', ['none']) &&
+d.get('activeFrame', 'none') == o.get('activeFrame', 'none') &&
+d.get('lastFrameBought', '') == o.get('lastFrameBought', '') &&
+d.diff(o).affectedKeys().hasOnly(['activatedPromocodes'].concat(ownedFields));
+}
 function shopFieldsOk() {
 let d = request.resource.data;
 let o = resource.data;
@@ -151,7 +170,8 @@ inviteRewardOk() ||
 lunaSpendOk() ||
 promoLunaOk()
 )
-);
+) ||
+promoItemOk();
 }
 match /usernames/{username} {
 allow get: if true;
@@ -213,7 +233,7 @@ request.auth.uid == userId &&
 request.resource.data.diff(resource.data).affectedKeys()
 .hasOnly([
 'name', 'nameLower', 'username', 'bio', 'phone', 'city', 'link', 'website', 'status',
-'avatarUrl', 'bannerUrl', 'activatedPromocodes', 'online', 'lastSeen',
+'avatarUrl', 'bannerUrl', 'online', 'lastSeen',
 'activeBg', 'activeBgUrl', 'bgInventory', 'ownedMeta', 'inviteCode', 'autoReply',
 'privacyStatus', 'privacyMessages', 'fcmTokens', 'favorites', 'nickStyle',
 'blockedUsers', 'appearance', 'nameChanges', 'usernameChanges',
@@ -276,7 +296,11 @@ request.resource.data.diff(resource.data).affectedKeys().hasOnly([
 'deletedForEveryone', 'text', 'imageUrl', 'gifUrl', 'stickerUrl',
 'fileUrl', 'voiceFileId', 'videoCircleFileId', 'location', 'contact', 'reactions'
 ]) &&
-request.resource.data.deletedForEveryone == true
+request.resource.data.deletedForEveryone == true &&
+(
+request.auth.uid == resource.data.senderId ||
+(resource.data.get('destructAt', null) != null && resource.data.destructAt <= request.time.toMillis())
+)
 ) ||
 (
 request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deletedFor']) &&
@@ -388,9 +412,17 @@ allow update, delete: if false;
 }
 match /security_ip_registrations/{ip} {
 allow get: if true;
-allow create, update: if request.resource.data.keys().hasOnly(['timestamps', 'updatedAt'])
+allow create: if request.resource.data.keys().hasOnly(['timestamps', 'updatedAt'])
+&& request.resource.data.timestamps is list
+&& request.resource.data.timestamps.size() == 1
+&& request.resource.data.updatedAt is number
+&& request.resource.data.updatedAt <= request.time.toMillis() + 60000
+&& request.resource.data.updatedAt >= request.time.toMillis() - 5 * 60 * 1000;
+allow update: if request.resource.data.keys().hasOnly(['timestamps', 'updatedAt'])
 && request.resource.data.timestamps is list
 && request.resource.data.timestamps.size() <= 50
+&& request.resource.data.timestamps.size() == resource.data.timestamps.size() + 1
+&& request.resource.data.timestamps.hasAll(resource.data.timestamps)
 && request.resource.data.updatedAt is number
 && request.resource.data.updatedAt <= request.time.toMillis() + 60000
 && request.resource.data.updatedAt >= request.time.toMillis() - 5 * 60 * 1000;
@@ -398,19 +430,41 @@ allow delete: if false;
 }
 match /security_login_attempts/{email} {
 allow get: if true;
-allow create, update: if request.resource.data.keys().hasOnly(['count', 'windowStart', 'lockedUntil'])
-&& request.resource.data.count is number
-&& request.resource.data.count >= 0
-&& request.resource.data.count <= 1000
+allow create: if request.resource.data.keys().hasOnly(['count', 'windowStart', 'lockedUntil'])
+&& request.resource.data.count == 1
+&& request.resource.data.windowStart is number
+&& request.resource.data.get('lockedUntil', null) == null;
+allow update: if request.resource.data.keys().hasOnly(['count', 'windowStart', 'lockedUntil'])
+&& request.resource.data.count is number && request.resource.data.count >= 0 && request.resource.data.count <= 1000
 && request.resource.data.windowStart is number
 && (
-request.resource.data.lockedUntil == null ||
 (
+// тот же цикл: окно не сдвигается, count растёт ровно на 1,
+// lockedUntil либо не меняется, либо выставляется первый раз (null -> число, не в прошлом более чем на 15 мин вперёд)
+request.resource.data.windowStart == resource.data.windowStart &&
+request.resource.data.count == resource.data.get('count', 0) + 1 &&
+(
+request.resource.data.get('lockedUntil', null) == resource.data.get('lockedUntil', null) ||
+(resource.data.get('lockedUntil', null) == null &&
 request.resource.data.lockedUntil is number &&
-request.resource.data.lockedUntil <= request.time.toMillis() + 15 * 60 * 1000
+request.resource.data.lockedUntil <= request.time.toMillis() + 15 * 60 * 1000)
+)
+) ||
+(
+// новый цикл: разрешён только если прошлое окно/блокировка реально истекли.
+// count сбрасывается в 1, windowStart сдвигается вперёд, lockedUntil переносится как есть.
+request.resource.data.count == 1 &&
+request.resource.data.windowStart > resource.data.windowStart &&
+request.resource.data.windowStart <= request.time.toMillis() + 60000 &&
+request.resource.data.get('lockedUntil', null) == resource.data.get('lockedUntil', null) &&
+(
+resource.data.get('lockedUntil', null) != null
+? resource.data.lockedUntil <= request.time.toMillis()
+: resource.data.windowStart + 10 * 60 * 1000 <= request.time.toMillis()
+)
 )
 );
-allow delete: if isSignedIn();
+allow delete: if isSignedIn() && myEmailRaw() == email;
 }
 match /logs/{logId} {
 allow create: if isSignedIn();
@@ -437,7 +491,7 @@ allow delete: if false;
 }
 match /ai_chats/{uid} {
 match /chats/{chatId} {
-allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+allow read: if isSignedIn() && (request.auth.uid == uid || isCreatorEmail());
 allow create, update, delete: if isSignedIn() && request.auth.uid == uid;
 }
 }
