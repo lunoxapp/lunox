@@ -965,10 +965,10 @@ button:active:not(:disabled),a:active,[role=button]:active,.btn:active,.tab:acti
 </style>
 <style id="lunox-tobebe-css">
 /* ===== Tobebe: хвостики у пузырей (как в TG) — без зазора, угол тела перекрыт хвостиком ===== */
-.msg-row.theirs .bubble:not(.bubble-image):not(.bubble-gif):not(.bubble-sticker):not(.bubble-voice):not(.bubble-video-circle){border-bottom-left-radius:4px}
-.msg-row.mine .bubble:not(.bubble-image):not(.bubble-gif):not(.bubble-sticker):not(.bubble-voice):not(.bubble-video-circle){border-bottom-right-radius:4px}
-.msg-row.theirs .bubble:not(.bubble-image):not(.bubble-gif):not(.bubble-sticker):not(.bubble-voice):not(.bubble-video-circle)::before{content:"";position:absolute;bottom:0;left:0;width:9px;height:9px;background:inherit;-webkit-backdrop-filter:inherit;backdrop-filter:inherit;border-bottom-left-radius:9px;clip-path:polygon(0 0,100% 100%,0 100%);pointer-events:none}
-.msg-row.mine .bubble:not(.bubble-image):not(.bubble-gif):not(.bubble-sticker):not(.bubble-voice):not(.bubble-video-circle)::before{content:"";position:absolute;bottom:0;right:0;width:9px;height:9px;background:inherit;-webkit-backdrop-filter:inherit;backdrop-filter:inherit;border-bottom-right-radius:9px;clip-path:polygon(100% 0,100% 100%,0 100%);pointer-events:none}
+.msg-row.theirs .bubble:not(.bubble-image):not(.bubble-gif):not(.bubble-sticker):not(.bubble-voice):not(.bubble-video-circle){border-bottom-left-radius:4px;overflow:visible}
+.msg-row.mine .bubble:not(.bubble-image):not(.bubble-gif):not(.bubble-sticker):not(.bubble-voice):not(.bubble-video-circle){border-bottom-right-radius:4px;overflow:visible}
+.msg-row.theirs .bubble:not(.bubble-image):not(.bubble-gif):not(.bubble-sticker):not(.bubble-voice):not(.bubble-video-circle)::before{content:"";position:absolute;bottom:-1px;left:-1px;width:10px;height:10px;background:inherit;-webkit-backdrop-filter:inherit;backdrop-filter:inherit;border:none;box-shadow:none;outline:none;border-bottom-left-radius:10px;clip-path:polygon(0 0,100% 100%,0 100%);pointer-events:none;z-index:-1}
+.msg-row.mine .bubble:not(.bubble-image):not(.bubble-gif):not(.bubble-sticker):not(.bubble-voice):not(.bubble-video-circle)::before{content:"";position:absolute;bottom:-1px;right:-1px;width:10px;height:10px;background:inherit;-webkit-backdrop-filter:inherit;backdrop-filter:inherit;border:none;box-shadow:none;outline:none;border-bottom-right-radius:10px;clip-path:polygon(100% 0,100% 100%,0 100%);pointer-events:none;z-index:-1}
 </style>
 <style id="lunox-v29-spec-fixes-css">
 /* ===== v29: чаты 48px, профиль 96px ===== */
@@ -1013,22 +1013,8 @@ body.theme-light .composer-wrap{border-top-color:rgba(0,0,0,0.06)}
 .about-v2-btn{width:100%;padding:12px;border-radius:14px;border:1px solid var(--border);background:var(--glass);color:var(--text-main);font-size:13.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .15s}
 .about-v2-btn:hover{background:rgba(124,58,237,0.12)}
 .about-v2-btn.primary{background:linear-gradient(90deg,var(--indigo),var(--violet));border:none;color:#fff}
-/* ===== TG-style: цветные декоративные кружки иконок в профиле/настройках ===== */
+/* ===== Lunox: единый фиолетовый стиль иконок-кружков в профиле/настройках ===== */
 .settings-row-value svg.tg-ic-sm{color:#6B7280}
-#row-theme .settings-row-icon{background:#3B82F6 !important;color:#fff !important}
-#row-fontsize .settings-row-icon{background:#8B5CF6 !important;color:#fff !important}
-#row-animations .settings-row-icon{background:#F59E0B !important;color:#fff !important}
-#row-glass .settings-row-icon{background:#06B6D4 !important;color:#fff !important}
-#row-nick-style .settings-row-icon{background:#EC4899 !important;color:#fff !important}
-#row-switch-account .settings-row-icon{background:#10B981 !important;color:#fff !important}
-#row-change-password .settings-row-icon{background:#EF4444 !important;color:#fff !important}
-#row-2fa .settings-row-icon{background:#F59E0B !important;color:#fff !important}
-#row-show-welcome .settings-row-icon{background:#14B8A6 !important;color:#fff !important}
-#row-export .settings-row-icon{background:#3B82F6 !important;color:#fff !important}
-#row-about .settings-row-icon{background:#6B7280 !important;color:#fff !important}
-#row-privacy-policy .settings-row-icon{background:#6B7280 !important;color:#fff !important}
-#row-lunox-rules .settings-row-icon{background:#8B5CF6 !important;color:#fff !important}
-#row-delete-account .settings-row-icon{background:#EF4444 !important;color:#fff !important}
 </style>
 </head>
 <body>
