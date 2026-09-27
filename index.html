@@ -212,20 +212,20 @@ body.theme-light .admin-role-select{background:#f5f5fb}
 .emoji-panel{display:flex;flex-direction:column;max-height:0;opacity:0;overflow:hidden;pointer-events:none;transform:translateY(18px);background:var(--bg-panel);border-top:1px solid rgba(124,58,237,0.35);border-radius:16px 16px 0 0;box-shadow:0 -10px 28px rgba(0,0,0,0.4),0 0 0 1px rgba(124,58,237,0.14) inset;transition:max-height 0.32s cubic-bezier(.22,.9,.3,1.05),opacity 0.26s ease,transform 0.32s cubic-bezier(.22,.9,.3,1.05)}
 .emoji-panel.active{max-height:300px;opacity:1;pointer-events:auto;transform:translateY(0)}
 .emoji-panel-tabs{display:flex;gap:4px;padding:8px 8px 6px;border-bottom:1px solid var(--border);flex-shrink:0}
-.emoji-panel-tab{flex:1;min-height:44px;display:flex;align-items:center;justify-content:center;padding:8px 4px;font-size:20px;line-height:1;border-radius:12px;background:none;border:none;color:var(--text-dim);cursor:pointer;transition:background .18s ease,color .18s ease,box-shadow .18s ease,transform .12s ease}
+.emoji-panel-tab{flex:1;min-height:44px;display:flex;align-items:center;justify-content:center;padding:8px 4px;font-size:20px;line-height:1;border-radius:12px;background:none;border:none;color:var(--text-dim);cursor:pointer;transition:transform .2s cubic-bezier(0.16,1,0.3,1),opacity .2s cubic-bezier(0.16,1,0.3,1),color .18s ease,box-shadow .18s ease}
 .emoji-panel-tab svg{width:22px;height:22px;transition:transform .18s cubic-bezier(.34,1.56,.64,1)}
 .emoji-panel-tab.active{color:var(--violet-bright);background:rgba(124,58,237,0.18);box-shadow:0 0 0 1px rgba(124,58,237,0.45) inset,0 0 14px rgba(124,58,237,0.25)}
 .emoji-panel-tab.active svg{transform:scale(1.12)}
-.emoji-panel-tab:hover{color:var(--violet-bright);background:rgba(124,58,237,0.1)}
-.emoji-panel-tab:active{transform:scale(0.9)}
-.emoji-panel-body{flex:1;overflow-y:auto;padding:6px 8px 10px}
+.emoji-panel-tab:hover{color:var(--violet-bright);opacity:.88}
+.emoji-panel-tab:active{transform:scale(0.9);opacity:.75}
+.emoji-panel-body{flex:1;overflow-y:auto;padding:6px 8px 10px;filter:none;backdrop-filter:none;-webkit-backdrop-filter:none}
 .emoji-panel-cat-title{font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);font-weight:700;margin:8px 4px 6px;position:sticky;top:0;background:var(--bg-panel);padding-top:4px;z-index:1}
 .emoji-panel-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:2px}
 @keyframes emojiContentFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
 .emoji-panel-body.emoji-fade{animation:emojiContentFade 0.22s ease}
-.emoji-item{font-size:29px;line-height:1;width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;background:none;border:none;border-radius:12px;cursor:pointer;transition:background .14s ease,transform .1s ease}
-.emoji-item:hover{background:rgba(124,58,237,0.22)}
-.emoji-item:active{background:rgba(124,58,237,0.34);transform:scale(0.86)}
+.emoji-item{font-size:29px;line-height:1;width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;background:none;border:none;border-radius:12px;cursor:pointer;transition:transform .2s cubic-bezier(0.16,1,0.3,1),opacity .2s cubic-bezier(0.16,1,0.3,1)}
+.emoji-item:hover{opacity:.8}
+.emoji-item:active{opacity:.6;transform:scale(0.86)}
 @keyframes emojiPop{0%{transform:scale(1)}35%{transform:scale(1.45)}65%{transform:scale(0.92)}100%{transform:scale(1)}}
 .emoji-item.emoji-tapped{animation:emojiPop 0.32s cubic-bezier(.34,1.56,.64,1)}
 .gif-panel-search-wrap{padding:2px 4px 8px;flex-shrink:0}
@@ -1021,9 +1021,54 @@ body.theme-light .composer-wrap{border-top-color:rgba(0,0,0,0.06)}
 <style id="lunox-settings-chatstyle-css">
 /* settings-row = 1:1 стиль карточек чатов (.chat-item): background/border/radius/padding + gap */
 .settings-group{background:transparent !important;border:none !important;border-radius:0 !important;overflow:visible !important}
-.settings-list .settings-row,.settings-group .settings-row,.settings-row{background:var(--glass) !important;border:var(--glass-brd) !important;border-radius:20px !important;padding:12px 14px !important;margin-bottom:8px !important}
-.settings-row-icon{width:20px !important;height:20px !important;border-radius:0 !important;background:none !important;padding:0 !important}
-.settings-row.danger .settings-row-icon{background:none !important}
+.settings-list .settings-row,.settings-group .settings-row,.settings-row{background:var(--glass) !important;border:var(--glass-brd) !important;border-radius:20px !important;margin-bottom:8px !important}
+</style>
+<style id="lunox-pkg3-rows-unify-css">
+/* pkg3 п.1+п.2: единая высота .settings-row (эталон — «Двухфакторная аутентификация») +
+   единый размер иконок. Причина разнобоя: .settings-row-fancy (font/gap), .settings-row-label>svg
+   (прямой svg без обёртки, круг 44px) и .settings-row-icon (обёрнутый span, ранее плющился до 20px
+   без круга последним патчем) стилизовались тремя разными правилами. Ниже — финальный, единый вид
+   для ОБОИХ вариантов разметки (со span-обёрткой и с «голым» svg), без переписывания HTML. */
+.settings-row{padding:10px 14px !important;min-height:54px !important;gap:10px !important;box-sizing:border-box !important}
+.settings-row-label{gap:12px !important;font-size:15px !important}
+.settings-row-fancy .settings-row-label{gap:12px !important;font-size:15px !important}
+.settings-row-icon{
+  width:36px !important;height:36px !important;min-width:36px !important;
+  border-radius:50% !important;background:rgba(139,92,246,.16) !important;
+  display:flex !important;align-items:center !important;justify-content:center !important;
+  flex-shrink:0 !important;padding:0 !important;box-sizing:border-box !important;overflow:visible !important;
+}
+.settings-row-icon svg{width:20px !important;height:20px !important;flex-shrink:0 !important;overflow:visible !important}
+.settings-row-label>svg{
+  width:36px !important;height:36px !important;min-width:36px !important;
+  padding:8px !important;box-sizing:border-box !important;border-radius:50% !important;
+  background:rgba(139,92,246,.16) !important;color:var(--violet-bright) !important;
+  flex-shrink:0 !important;overflow:visible !important;
+}
+.settings-row.danger .settings-row-icon,.settings-row.danger .settings-row-label>svg{
+  background:rgba(248,113,113,.15) !important;color:var(--danger) !important;
+}
+</style>
+<style id="lunox-pkg3-anim-scroll-css">
+/* pkg3 п.3: единая плавная анимация нажатия (scale 0.97, 0.15s, единый --ease) —
+   перекрывает более ранние scale(0.96)/0.92 у тех же элементов. */
+.settings-row:active,.action-row:active,.pick-row:active,.acc-row:active,.acc-action-row:active,
+.status-chip:active,.nav-btn:active,.icon-btn:active,.shop-card:active,.shop-tab:active,
+.chat-item:active,.settings-nav-row:active{
+  transform:scale(0.97) !important;
+  transition:transform .15s ease !important;
+}
+/* п.3: переключатели — 0.25s на едином --ease */
+.toggle-switch{transition:background .25s var(--ease)}
+.toggle-switch::after{transition:transform .25s var(--ease)}
+/* п.6: плавный скролл в профиле/настройках */
+.profile-tab-body,.settings-screen-body,.settings-drawer{
+  scroll-behavior:smooth;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;
+}
+/* п.5: bottom-sheet раскрыт свайпом вверх */
+.modal-sheet.expanded{max-height:94vh}
 </style>
 </head>
 <body>
@@ -5964,6 +6009,9 @@ function openModal(html, opts) {
   opts = opts || {};
   clearTimeout(_modalCloseT); modalOverlayEl.classList.remove('closing');
   modalSheetEl.innerHTML = `<div class="modal-handle"></div>` + html;
+  modalSheetEl.classList.remove('expanded');
+  modalSheetEl.style.transform = '';
+  modalSheetEl.style.transition = '';
   modalOverlayEl.classList.toggle('center', !!opts.center);
   modalOverlayEl.classList.add('active');
 }
@@ -5971,11 +6019,60 @@ function closeModal() {
   if (modalOverlayEl.classList.contains('active') && !modalOverlayEl.classList.contains('closing')) {
     modalOverlayEl.classList.add('closing');
     clearTimeout(_modalCloseT);
-    _modalCloseT = setTimeout(() => { modalOverlayEl.classList.remove('active', 'closing'); modalSheetEl.innerHTML = ''; }, 280);
+    _modalCloseT = setTimeout(() => { modalOverlayEl.classList.remove('active', 'closing'); modalSheetEl.innerHTML = ''; modalSheetEl.classList.remove('expanded'); modalSheetEl.style.transform = ''; modalSheetEl.style.transition = ''; }, 280);
   }
   if (unsubscribeUserProfileModal) { unsubscribeUserProfileModal(); unsubscribeUserProfileModal = null; }
 }
 modalOverlayEl.addEventListener('click', (e) => { if (e.target === modalOverlayEl) closeModal(); });
+
+/* ================= pkg3 п.5: свайп bottom-sheet — общий для ВСЕХ action-sheet
+   (Прикрепить, Размер элементов, три точки, реакции, меню настроек/профиля), т.к. все они
+   используют один и тот же #modal-overlay/#modal-sheet. Свайп реагирует только на «ручку»
+   (.modal-handle), чтобы не мешать скроллу содержимого самой шторки. Центрированные алерты
+   (opts.center = true — О приложении/Политика/Правила/подтверждения) свайпом не управляются. */
+(function () {
+  if (!modalOverlayEl || !modalSheetEl) return;
+  let startY = 0, dy = 0, dragging = false, sheetH = 0;
+  function onDown(e) {
+    if (modalOverlayEl.classList.contains('center')) return;
+    const t = e.touches ? e.touches[0] : e;
+    startY = t.clientY; dy = 0; dragging = true;
+    sheetH = modalSheetEl.offsetHeight || 1;
+    modalSheetEl.style.transition = 'none';
+  }
+  function onMove(e) {
+    if (!dragging) return;
+    const t = e.touches ? e.touches[0] : e;
+    dy = t.clientY - startY;
+    modalSheetEl.style.transform = `translateY(${dy}px)`;
+  }
+  function onUp() {
+    if (!dragging) return;
+    dragging = false;
+    if (dy > sheetH * 0.3) {
+      // вниз больше чем на 30% высоты — закрыть (стандартная анимация modalDown + fade из closeModal)
+      modalSheetEl.style.transition = '';
+      modalSheetEl.style.transform = '';
+      closeModal();
+    } else if (dy < -40) {
+      // вверх — раскрыть до 94vh
+      modalSheetEl.style.transition = 'transform .3s var(--ease)';
+      modalSheetEl.style.transform = 'translateY(0)';
+      modalSheetEl.classList.add('expanded');
+      setTimeout(() => { modalSheetEl.style.transition = ''; }, 320);
+    } else {
+      // недостаточно для действия — плавно вернуть на место
+      modalSheetEl.style.transition = 'transform .3s var(--ease)';
+      modalSheetEl.style.transform = 'translateY(0)';
+      setTimeout(() => { modalSheetEl.style.transition = ''; }, 320);
+    }
+    dy = 0;
+  }
+  modalSheetEl.addEventListener('touchstart', (e) => { if (e.target.closest('.modal-handle')) onDown(e); }, { passive: true });
+  modalSheetEl.addEventListener('touchmove', (e) => { if (dragging) onMove(e); }, { passive: true });
+  modalSheetEl.addEventListener('touchend', onUp);
+  modalSheetEl.addEventListener('touchcancel', onUp);
+})();
 
 /* ================= ПЕРЕКЛЮЧАТЕЛЬ АККАУНТОВ ================= */
 function renderAccSwitcherAvatar(acc) {
@@ -15340,7 +15437,24 @@ function renderEmojiPanel() {
   const cat = EMOJI_CATEGORIES.find(c => c.id === emojiActiveCat);
   // Текстовое название категории (например «Эмоции») намеренно не выводим —
   // в панели должны быть видны только иконки категорий и сами смайлики, без подписей.
-  bodyEl.innerHTML = `<div class="emoji-panel-grid">${cat.emojis.map(em => `<button type="button" class="emoji-item">${em}</button>`).join('')}</div>`;
+  // Виртуализация: если смайлов в категории много, сперва рисуем только первый экран
+  // (видимую область), остальное — следующим кадром, чтобы не запускать один тяжёлый
+  // layout/paint на всю сетку сразу при переключении вкладки.
+  const VIRTUALIZE_THRESHOLD = 60;
+  const FIRST_CHUNK = 40;
+  const gridWrap = document.createElement('div');
+  gridWrap.className = 'emoji-panel-grid';
+  bodyEl.innerHTML = '';
+  bodyEl.appendChild(gridWrap);
+  if (cat.emojis.length > VIRTUALIZE_THRESHOLD) {
+    gridWrap.innerHTML = cat.emojis.slice(0, FIRST_CHUNK).map(em => `<button type="button" class="emoji-item">${em}</button>`).join('');
+    requestAnimationFrame(() => {
+      if (emojiActiveCat !== cat.id) return; // категорию уже переключили — не дорисовываем
+      gridWrap.insertAdjacentHTML('beforeend', cat.emojis.slice(FIRST_CHUNK).map(em => `<button type="button" class="emoji-item">${em}</button>`).join(''));
+    });
+  } else {
+    gridWrap.innerHTML = cat.emojis.map(em => `<button type="button" class="emoji-item">${em}</button>`).join('');
+  }
   bodyEl.scrollTop = 0;
   // Плавная смена содержимого при переключении категории: перезапускаем CSS-анимацию
   // fade-in через удаление и повторное добавление класса (иначе браузер её не повторит).
@@ -15452,6 +15566,24 @@ function initEmojiPanelOnce() {
       return;
     }
   });
+
+  // will-change только на время анимации нажатия (transform/opacity) — не держим лишние
+  // GPU-слои постоянно на десятках кнопок, включаем точечно на нажатую кнопку и снимаем
+  // сразу после завершения перехода.
+  function primeWillChange(root, selector) {
+    root.addEventListener('touchstart', (e) => {
+      const el = e.target.closest(selector);
+      if (!el) return;
+      el.style.willChange = 'transform, opacity';
+    }, { passive: true });
+    root.addEventListener('touchend', (e) => {
+      const el = e.target.closest(selector);
+      if (!el) return;
+      setTimeout(() => { el.style.willChange = ''; }, 220);
+    }, { passive: true });
+  }
+  primeWillChange(bodyEl, '.emoji-item');
+  primeWillChange(tabsEl, '.emoji-panel-tab');
 }
 function closeEmojiPanel() {
   const panel = document.getElementById('emoji-panel');
@@ -16803,31 +16935,8 @@ document.getElementById('settings-backdrop').addEventListener('click', () => {
   if (settingsSection) { settingsSection = null; renderSettingsScreen(); }
   closeSettingsScreen();
 });
-// Закрытие панели настроек свайпом вправо
-(function () {
-  const scr = document.getElementById('screen-settings');
-  if (!scr) return;
-  let startX = 0, startY = 0, dx = 0, tracking = false;
-  scr.addEventListener('touchstart', (e) => {
-    if (!scr.classList.contains('active')) return;
-    startX = e.touches[0].clientX; startY = e.touches[0].clientY; dx = 0; tracking = true;
-    scr.style.transition = 'none';
-  }, { passive: true });
-  scr.addEventListener('touchmove', (e) => {
-    if (!tracking) return;
-    dx = e.touches[0].clientX - startX;
-    const dy = e.touches[0].clientY - startY;
-    if (Math.abs(dy) > Math.abs(dx)) return;
-    if (dx > 0) scr.style.transform = `translateX(${dx}px)`;
-  }, { passive: true });
-  scr.addEventListener('touchend', () => {
-    if (!tracking) return;
-    tracking = false;
-    scr.style.transition = '';
-    scr.style.transform = '';
-    if (dx > 80) closeSettingsScreen();
-  });
-})();
+// pkg3 п.7: свайп вправо для закрытия настроек убран — панель закрывается только тапом
+// по фону (backdrop, см. слушатель settings-backdrop выше) и кнопкой «назад»/крестик.
 document.getElementById('settings-back').addEventListener('click', () => {
   if (settingsSection) { settingsSection = null; renderSettingsScreen(); document.getElementById('settings-screen-body').scrollTop = 0; }
   else closeSettingsScreen();
