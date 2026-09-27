@@ -963,13 +963,7 @@ button:active:not(:disabled),a:active,[role=button]:active,.btn:active,.tab:acti
 /* анимация появления не должна блокировать :active */
 .stg-in{animation-fill-mode:backwards}
 </style>
-<style id="lunox-tobebe-css">
-/* ===== Tobebe: хвостики у пузырей (как в TG) — без зазора, угол тела перекрыт хвостиком ===== */
-.msg-row.theirs .bubble:not(.bubble-image):not(.bubble-gif):not(.bubble-sticker):not(.bubble-voice):not(.bubble-video-circle){border-bottom-left-radius:4px;overflow:visible}
-.msg-row.mine .bubble:not(.bubble-image):not(.bubble-gif):not(.bubble-sticker):not(.bubble-voice):not(.bubble-video-circle){border-bottom-right-radius:4px;overflow:visible}
-.msg-row.theirs .bubble:not(.bubble-image):not(.bubble-gif):not(.bubble-sticker):not(.bubble-voice):not(.bubble-video-circle)::before{content:"";position:absolute;bottom:-1px;left:-1px;width:10px;height:10px;background:inherit;-webkit-backdrop-filter:inherit;backdrop-filter:inherit;border:none;box-shadow:none;outline:none;border-bottom-left-radius:10px;clip-path:polygon(0 0,100% 100%,0 100%);pointer-events:none;z-index:-1}
-.msg-row.mine .bubble:not(.bubble-image):not(.bubble-gif):not(.bubble-sticker):not(.bubble-voice):not(.bubble-video-circle)::before{content:"";position:absolute;bottom:-1px;right:-1px;width:10px;height:10px;background:inherit;-webkit-backdrop-filter:inherit;backdrop-filter:inherit;border:none;box-shadow:none;outline:none;border-bottom-right-radius:10px;clip-path:polygon(100% 0,100% 100%,0 100%);pointer-events:none;z-index:-1}
-</style>
+
 <style id="lunox-v29-spec-fixes-css">
 /* ===== v29: чаты 48px, профиль 96px ===== */
 .chat-list .chat-item .avatar,.chat-list .chat-item .avatar-wrap{width:48px !important;height:48px !important}
@@ -1015,6 +1009,21 @@ body.theme-light .composer-wrap{border-top-color:rgba(0,0,0,0.06)}
 .about-v2-btn.primary{background:linear-gradient(90deg,var(--indigo),var(--violet));border:none;color:#fff}
 /* ===== Lunox: единый фиолетовый стиль иконок-кружков в профиле/настройках ===== */
 .settings-row-value svg.tg-ic-sm{color:#6B7280}
+</style>
+<style id="lunox-pkg3-notail-css">
+/* pkg3: без хвостика у пузырей — все углы 18px, точечные фиксы поверх glass/pkg2 */
+.msg-row.theirs .bubble:not(.bubble-image):not(.bubble-gif):not(.bubble-sticker):not(.bubble-voice):not(.bubble-video-circle),
+.msg-row.mine .bubble:not(.bubble-image):not(.bubble-gif):not(.bubble-sticker):not(.bubble-voice):not(.bubble-video-circle){border-radius:18px !important}
+.settings-row{border:1px solid var(--border) !important}
+.composer .icon-btn,.composer button.send-btn,.ai-attach-btn{overflow:visible !important}
+.composer .emoji-btn svg{width:25px !important;height:25px !important}
+</style>
+<style id="lunox-settings-chatstyle-css">
+/* settings-row = 1:1 стиль карточек чатов (.chat-item): background/border/radius/padding + gap */
+.settings-group{background:transparent !important;border:none !important;border-radius:0 !important;overflow:visible !important}
+.settings-list .settings-row,.settings-group .settings-row,.settings-row{background:var(--glass) !important;border:var(--glass-brd) !important;border-radius:20px !important;padding:12px 14px !important;margin-bottom:8px !important}
+.settings-row-icon{width:20px !important;height:20px !important;border-radius:0 !important;background:none !important;padding:0 !important}
+.settings-row.danger .settings-row-icon{background:none !important}
 </style>
 </head>
 <body>
