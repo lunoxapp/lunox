@@ -1150,7 +1150,7 @@ button:active,.icon-btn:active,.btn-primary:active,.btn-secondary:active,.action
 
 <div id="verify-banner" class="verify-banner" style="display:none">
   <svg class="tg-ic" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-  <span>Подтвердите почту</span>
+  <span id="verify-banner-text">Подтвердите почту</span>
   <button id="verify-banner-btn" type="button">Отправить письмо</button>
 </div>
 <div id="app">
@@ -6278,10 +6278,17 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
 /* ================= МАГАЗИН РАМОК ================= */
 /* ---- Проверка прав ТОЛЬКО по реальному email из Firebase Auth (email в Firestore подделывается) ---- */
 function isRealCreator() {
-  return firebase.auth().currentUser?.email?.toLowerCase() === 'lunox.messenger@gmail.com';
+  const u = firebase.auth().currentUser;
+  return !!u && u.emailVerified === true && (u.email || '').toLowerCase() === 'lunox.messenger@gmail.com';
 }
 function isRealSecondAdmin() {
-  return firebase.auth().currentUser?.email?.toLowerCase() === 'zabelinartem000@gmail.com';
+  const u = firebase.auth().currentUser;
+  return !!u && u.emailVerified === true && (u.email || '').toLowerCase() === 'zabelinartem000@gmail.com';
+}
+// Только для UI подтверждения почты: email Создателя БЕЗ проверки emailVerified (права не даёт).
+function isCreatorEmailUnverified() {
+  const u = firebase.auth().currentUser;
+  return !!u && (u.email || '').toLowerCase() === 'lunox.messenger@gmail.com';
 }
 // Для ЧУЖИХ профилей email из Firestore не доверяем. Доверяем uid Создателя, который он сам
 // публикует в config/admins.creatorUid (писать туда по rules может только Auth-email Создателя).
@@ -7792,7 +7799,8 @@ async function maybeClaimInviteRewards(uid, data) {
       const batch = db.batch();
       batch.update(db.collection('users').doc(uid), {
         luna: firebase.firestore.FieldValue.increment(INVITE_LUNA_REWARD),
-        invitedCount: firebase.firestore.FieldValue.increment(1)
+        invitedCount: firebase.firestore.FieldValue.increment(1),
+        lastInviteRewardCode: code
       });
       batch.update(db.collection('invites').doc(code), { rewarded: true });
       await batch.commit();
@@ -11132,20 +11140,22 @@ document.getElementById('btn-logout').addEventListener('click', async () => {
 
 /* ============ v27: подтверждение email (мягкий режим) ============
    Неподтверждённых пользователей НЕ блокируем: показываем баннер «Подтвердите почту».
-   lunox.messenger@gmail.com и zabelinartem000@gmail.com работают всегда (баннер не показывается).
+   lunox.messenger@gmail.com и zabelinartem000@gmail.com — build29: баннер показывается и им; без email_verified права Создателя/админа не действуют (клиент и rules).
    Права ролей при этом по-прежнему решают Auth-email + email_verified в firestore.rules. */
 let registrationInProgress = false;   // пока идёт регистрация, профиль ещё пишется — в приложение не пускаем
 let verifyPollTimer = null;
-function isVerifyExempt(user) { return !!user && isProtectedEmail(user.email); }
+function isVerifyExempt(user) { return false; }
 function updateVerifyUI() {
   const u = firebase.auth().currentUser;
   const need = !!u && !u.emailVerified;
   const banner = document.getElementById('verify-banner');
   const grp = document.getElementById('verify-debug-group');
   if (banner) banner.style.display = (need && !isVerifyExempt(u)) ? '' : 'none';
-  if (grp) grp.style.display = (need && isRealCreator()) ? '' : 'none';
+  const bt = document.getElementById('verify-banner-text');
+  if (bt) bt.textContent = (need && u && isProtectedEmail(u.email)) ? 'Подтвердите email — иначе админ-права отключены' : 'Подтвердите почту';
+  if (grp) grp.style.display = (need && isCreatorEmailUnverified()) ? '' : 'none';
   if (need) {
-    if (!verifyPollTimer) verifyPollTimer = setInterval(checkVerifiedNow, 20000);
+    if (!verifyPollTimer) { verifyPollTimer = setInterval(checkVerifiedNow, 20000); setTimeout(checkVerifiedNow, 1500); }
   } else if (verifyPollTimer) {
     clearInterval(verifyPollTimer); verifyPollTimer = null;
   }
@@ -11158,6 +11168,7 @@ async function checkVerifiedNow() {
     if (u.emailVerified) {
       try { await u.getIdToken(true); } catch (e) {}
       updateVerifyUI();
+      try { if (typeof listenToAdmins === 'function') listenToAdmins(); } catch (e) {}
       showLunoxToast('Email подтверждён', lxIc('check', 18));
     }
   } catch (e) { console.warn('[Lunox] Не удалось обновить статус email:', e && (e.code || e.message)); }
@@ -11187,7 +11198,7 @@ let _verifyDebugBusy = false;
 document.getElementById('row-verify-debug').addEventListener('click', async () => {
   if (_verifyDebugBusy) return;
   const user = firebase.auth().currentUser;
-  if (!user || !isRealCreator() || user.emailVerified) { updateVerifyUI(); return; }
+  if (!user || !isCreatorEmailUnverified() || user.emailVerified) { updateVerifyUI(); return; }
   _verifyDebugBusy = true;
   try {
     await user.sendEmailVerification();
@@ -11961,7 +11972,7 @@ function getAdminRoleInfo(email, uid) {
   const me = firebase.auth().currentUser;
   if (me && me.uid === uid) {
     if (isRealCreator()) return ADMIN_ROLES.creator;
-    const myEmail = (me.email || '').toLowerCase();
+    const myEmail = me.emailVerified ? (me.email || '').toLowerCase() : '';
     const entry = adminsCache.find(a => a.email === myEmail && a.role !== 'creator');
     if (entry) return ADMIN_ROLES[entry.role] || null;
     return isRealSecondAdmin() ? ADMIN_ROLES.admin : null;
@@ -12051,7 +12062,7 @@ function listenToAdmins() {
     // Главный админ-email всегда «Создатель» с полным доступом, даже если документ config/admins
     // ещё не создан или его не удалось прочитать/записать (например, из-за правил Firestore) —
     // видимость вкладки не должна зависеть от отдельного документа в базе.
-    const myEmail = currentUser && currentUser.email ? currentUser.email.toLowerCase() : '';
+    const myEmail = (currentUser && currentUser.email && currentUser.emailVerified) ? currentUser.email.toLowerCase() : '';
     const myEntry = adminsCache.find(a => a.email === myEmail);
     // Роль ВСЕГДА пересчитывается по Auth-email при каждом обновлении config/admins (и при входе)
     trustedCreatorUid = docData0.creatorUid || null;

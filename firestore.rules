@@ -19,11 +19,11 @@ return isSignedIn() && request.auth.token.email != null
 : '';
 }
 function isHardcodedOwner() {
-return myEmailRaw() == 'lunox.messenger@gmail.com' ||
-myEmailRaw() == 'zabelinartem000@gmail.com';
+return myEmail() == 'lunox.messenger@gmail.com' ||
+myEmail() == 'zabelinartem000@gmail.com';
 }
 function isCreatorEmail() {
-return myEmailRaw() == 'lunox.messenger@gmail.com';
+return myEmail() == 'lunox.messenger@gmail.com';
 }
 function adminsListHasRole(role) {
 return exists(/databases/$(database)/documents/config/admins) &&
@@ -87,14 +87,38 @@ d.get('inventory', ['none']) == ['none'] &&
 d.get('activeFrame', 'none') == 'none' &&
 !d.keys().hasAny(['lastFrameBought']);
 }
+function userCreateShapeOk() {
+let d = request.resource.data;
+return d.keys().hasOnly([
+'name', 'nameLower', 'badge', 'bgInventory', 'activeBg', 'luna', 'inventory', 'activeFrame',
+'originalName', 'username', 'email', 'phone', 'avatarUrl', 'bio', 'status',
+'privacyStatus', 'privacyMessages', 'blockedUsers', 'favorites', 'nameChanges',
+'invitedBy', 'invitedCount', 'inviteCode', 'strikes', 'strikesHistory', 'createdAt'
+])
+&& d.get('invitedCount', 0) == 0
+&& d.get('strikes', 0) == 0
+&& d.get('strikesHistory', []) == []
+&& d.get('bgInventory', ['none']) == ['none']
+&& d.get('activeBg', 'none') == 'none'
+&& d.get('blockedUsers', []) == []
+&& d.get('favorites', []) == []
+&& d.get('nameChanges', []) == []
+&& d.get('createdAt', request.time) == request.time;
+}
 function inviteRewardOk() {
 let d = request.resource.data;
 let o = resource.data;
 let deltaCount = d.get('invitedCount', 0) - o.get('invitedCount', 0);
-return deltaCount == 1 &&
+let code = d.get('lastInviteRewardCode', '');
+return code is string && code.size() > 0 &&
+deltaCount == 1 &&
 d.get('luna', 0) == o.get('luna', 0) + 50 &&
 d.get('inventory', ['none']) == o.get('inventory', ['none']) &&
-d.get('activeFrame', 'none') == o.get('activeFrame', 'none');
+d.get('activeFrame', 'none') == o.get('activeFrame', 'none') &&
+get(/databases/$(database)/documents/invites/$(code)).data.createdBy == request.auth.uid &&
+get(/databases/$(database)/documents/invites/$(code)).data.usedBy != null &&
+get(/databases/$(database)/documents/invites/$(code)).data.rewarded == false &&
+getAfter(/databases/$(database)/documents/invites/$(code)).data.rewarded == true;
 }
 function lunaSpendOk() {
 let d = request.resource.data;
@@ -152,7 +176,7 @@ let bought = d.get('lastFrameBought', '');
 return isCreatorEmail() ||
 (
 d.diff(o).affectedKeys()
-.hasOnly(['luna', 'inventory', 'activeFrame', 'lastFrameBought', 'invitedCount', 'activatedPromocodes']) &&
+.hasOnly(['luna', 'inventory', 'activeFrame', 'lastFrameBought', 'invitedCount', 'activatedPromocodes', 'lastInviteRewardCode']) &&
 (
 (
 nLuna == oLuna && nInv == oInv && nFrame in nInv &&
@@ -176,7 +200,8 @@ promoItemOk();
 match /usernames/{username} {
 allow get: if true;
 allow list: if false;
-allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid
+&& request.resource.data.keys().hasOnly(['uid']);
 allow update: if false;
 allow delete: if isSignedIn() && resource.data.uid == request.auth.uid;
 }
@@ -191,11 +216,13 @@ allow create: if isSignedIn() && request.resource.data.createdBy == request.auth
 allow update: if isSignedIn() && (
 (
 resource.data.createdBy == request.auth.uid &&
+resource.data.usedBy != null &&
 request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rewarded']) &&
 request.resource.data.rewarded == true
 ) ||
 (
 resource.data.usedBy == null &&
+resource.data.createdBy != request.auth.uid &&
 request.resource.data.usedBy == request.auth.uid &&
 request.resource.data.diff(resource.data).affectedKeys().hasOnly(['usedBy', 'usedAt'])
 )
@@ -221,7 +248,7 @@ allow delete: if isAdmin();
 match /users/{userId} {
 allow get: if isSignedIn();
 allow list: if isSignedIn() && resource.data.invitedBy == request.auth.uid;
-allow create: if isSignedIn() && request.auth.uid == userId && shopCreateOk();
+allow create: if isSignedIn() && request.auth.uid == userId && shopCreateOk() && userCreateShapeOk();
 allow update: if isSignedIn() && (
 (
 request.auth.uid == userId &&
@@ -266,9 +293,36 @@ allow read, write: if isSignedIn() && request.auth.uid == userId;
 }
 match /chats/{chatId} {
 allow read: if isSignedIn() && (resource == null || request.auth.uid in resource.data.members);
-allow create: if isSignedIn() && request.auth.uid in request.resource.data.members;
+allow create: if isSignedIn() && request.auth.uid in request.resource.data.members
+&& (
+(
+request.resource.data.get('isGroup', false) == false
+&& request.resource.data.members.size() == 2
+&& chatId in [
+request.resource.data.members[0] + '_' + request.resource.data.members[1],
+request.resource.data.members[1] + '_' + request.resource.data.members[0]
+]
+) || (
+request.resource.data.get('isGroup', false) == true
+&& request.resource.data.members.size() >= 2
+&& request.resource.data.members.size() <= 100
+&& request.resource.data.createdBy == request.auth.uid
+&& request.auth.uid in request.resource.data.admins
+&& request.resource.data.admins.hasOnly(request.resource.data.members)
+)
+);
 allow update: if isSignedIn()
 && request.auth.uid in resource.data.members
+&& !request.resource.data.diff(resource.data).affectedKeys()
+.hasAny(['isGroup', 'createdBy', 'createdAt', 'admins', 'isBot', 'botType', 'memberEmails'])
+&& (
+!request.resource.data.diff(resource.data).affectedKeys().hasAny(['members'])
+|| (
+!(request.auth.uid in request.resource.data.members)
+&& request.resource.data.members.toSet().difference(resource.data.members.toSet()).size() == 0
+&& request.resource.data.members.size() == resource.data.members.size() - 1
+)
+)
 && (
 !resource.data.isGroup
 || !request.resource.data.diff(resource.data).affectedKeys().hasAny(['groupName', 'groupAvatarUrl'])
@@ -332,7 +386,13 @@ allow update: if isSignedIn()
 allow delete: if false;
 match /signals/{pairId} {
 allow read: if isSignedIn() && request.auth.uid in resource.data.get('members', []);
-allow write: if isSignedIn() && request.auth.uid in request.resource.data.get('members', []);
+allow create: if isSignedIn()
+&& request.auth.uid in request.resource.data.get('members', [])
+&& request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.members
+&& request.resource.data.get('members', []).hasOnly(get(/databases/$(database)/documents/chats/$(chatId)).data.members);
+allow update: if isSignedIn()
+&& request.auth.uid in resource.data.get('members', [])
+&& request.resource.data.get('members', []).toSet() == resource.data.get('members', []).toSet();
 allow delete: if false;
 }
 }
@@ -467,7 +527,12 @@ resource.data.get('lockedUntil', null) != null
 allow delete: if isSignedIn() && myEmailRaw() == email;
 }
 match /logs/{logId} {
-allow create: if isSignedIn();
+allow create: if isSignedIn()
+&& request.resource.data.keys().hasOnly(['actorEmail', 'action', 'details', 'timestamp'])
+&& request.resource.data.actorEmail in [myEmailRaw(), 'unknown']
+&& request.resource.data.action is string && request.resource.data.action.size() <= 100
+&& request.resource.data.details is map
+&& request.resource.data.timestamp == request.time;
 allow read: if isSignedIn() && isHardcodedOwner();
 allow update: if false;
 allow delete: if false;
@@ -484,9 +549,9 @@ allow update: if false;
 allow delete: if false;
 }
 match /roleChangeRequests/{id} {
-allow create: if isSignedIn() && request.resource.data.requestedBy == request.auth.uid;
+allow create: if false;
 allow read: if isSignedIn() && isHardcodedOwner();
-allow update: if isSignedIn() && resource.data.requestedBy == request.auth.uid;
+allow update: if false;
 allow delete: if false;
 }
 match /ai_chats/{uid} {
