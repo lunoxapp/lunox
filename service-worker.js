@@ -3,14 +3,15 @@
 // Telegram/GigaChat/Gemini и Netlify Functions (network-first, без агрессивного кэша),
 // чтобы не ломать реалтайм-данные и авторизацию.
 
-const CACHE_VERSION = 'lunox-static-v28';
+const CACHE_VERSION = 'lunox-static-v33';
 const PRECACHE_URLS = [
   '/',
   '/index.html',
   '/manifest.json',
   '/icon-192.png',
   '/icon-512.png',
-  '/icon-512-maskable.png'
+  '/icon-512-maskable.png',
+  '/apple-touch-icon.png'
 ];
 
 const STATIC_EXT = ['.html', '.css', '.js', '.json', '.png', '.jpg', '.jpeg', '.svg', '.ico', '.woff', '.woff2'];
@@ -18,7 +19,10 @@ const STATIC_EXT = ['.html', '.css', '.js', '.json', '.png', '.jpg', '.jpeg', '.
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_VERSION)
-      .then((cache) => cache.addAll(PRECACHE_URLS))
+      .then((cache) => Promise.allSettled(
+        // По одному файлу: 404/сеть на любом из них не срывает установку воркера (cache.addAll — «всё или ничего»).
+        PRECACHE_URLS.map((url) => cache.add(url).catch((err) => { console.warn('[Lunox SW] precache пропущен:', url, err && err.message); }))
+      ))
       .then(() => self.skipWaiting())
   );
 });

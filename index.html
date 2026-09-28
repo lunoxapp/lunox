@@ -2126,7 +2126,7 @@ button:active,.icon-btn:active,.btn-primary:active,.btn-secondary:active,.action
         <button class="icon-btn" id="btn-timer" title="Таймер самоуничтожения" style="display:none"><svg class="tg-ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></button>
         <input type="file" id="input-photo-file" accept="image/*" style="display:none;">
         <input type="file" id="input-generic-file" style="display:none;">
-        <input type="text" id="input-message" placeholder="Сообщение…" autocomplete="off" autocorrect="on" autocapitalize="sentences" spellcheck="true" inputmode="text" enterkeyhint="send" autofocus>
+        <input type="text" id="input-message" maxlength="5000" placeholder="Сообщение…" autocomplete="off" autocorrect="on" autocapitalize="sentences" spellcheck="true" inputmode="text" enterkeyhint="send" autofocus>
         <button class="icon-btn emoji-btn" id="btn-emoji" aria-label="Смайлики" type="button"><svg class="tg-ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></button>
         <div class="voice-record-indicator" id="voice-record-indicator">
           <button class="voice-cancel-btn" id="btn-voice-cancel" type="button" title="Удалить запись" aria-label="Удалить запись">
@@ -2813,6 +2813,49 @@ try {
 
 let currentUser = null;
 let currentUserData = {};
+// users/{uid}/private/main: email, phone, fcmTokens, blockedUsers, favorites (только владелец).
+let myPrivateData = {}, myPublicRaw = null, myPrivateLoaded = false, _privMigrating = false, _phoneDropBusy = false;
+let unsubscribeMyPrivate = null;
+const adminEmailCache = {}, adminEmailPending = new Set();
+function myPrivateRef() { return db.collection('users').doc(currentUser.uid).collection('private').doc('main'); }
+// Ленивая миграция: переносим старые приватные поля из users/{uid} в private/main (только недостающие).
+function migrateMyPrivate() {
+  if (_privMigrating || !currentUser || !myPrivateLoaded || !myPublicRaw) return;
+  const patch = {};
+  if (myPrivateData.email === undefined && currentUser.email) patch.email = currentUser.email;
+  ['phone', 'blockedUsers', 'favorites', 'fcmTokens'].forEach((k) => {
+    if (myPrivateData[k] === undefined && myPublicRaw[k] !== undefined) patch[k] = myPublicRaw[k];
+  });
+  // Старое публичное поле phone удаляем, когда телефон уже лежит в private/main (правила разрешают только удаление).
+  const dropPubPhone = () => {
+    if (myPublicRaw.phone === undefined || _phoneDropBusy) return;
+    _phoneDropBusy = true;
+    db.collection('users').doc(currentUser.uid).update({ phone: firebase.firestore.FieldValue.delete() })
+      .catch(() => {}).finally(() => { _phoneDropBusy = false; });
+  };
+  if (!Object.keys(patch).length) { if (myPrivateData.phone !== undefined) dropPubPhone(); return; }
+  _privMigrating = true;
+  myPrivateRef().set(patch, { merge: true })
+    .then(() => { if (patch.phone !== undefined || myPrivateData.phone !== undefined) dropPubPhone(); })
+    .catch((e) => console.warn('[Lunox] private/main migrate:', e && (e.code || e.message)))
+    .finally(() => { _privMigrating = false; });
+}
+// Админка: email чужого пользователя лежит в его private/main — читаем только если мы админ.
+function loadAdminEmail(uid) {
+  if (!currentUser || !(isCurrentUserAdmin || isRealCreator()) || uid === currentUser.uid) return;
+  if ((uid in adminEmailCache) || adminEmailPending.has(uid)) return;
+  adminEmailPending.add(uid);
+  db.collection('users').doc(uid).collection('private').doc('main').get().then((s) => {
+    const em = s.exists ? String((s.data() || {}).email || '') : '';
+    adminEmailCache[uid] = em;
+    if (!em) return;
+    if (allUsersMap[uid]) allUsersMap[uid].email = em;
+    const u = allUsersCache.find((x) => x.uid === uid);
+    if (u) u.email = em;
+    markTabDirty('tab-admin');
+    syncTrustedUids();
+  }).catch(() => { adminEmailCache[uid] = ''; }).finally(() => adminEmailPending.delete(uid));
+}
 let currentChatId = null;
 let currentChatIsGroup = false;
 let currentChatMembers = [];
@@ -3162,6 +3205,13 @@ function isAiDrawIntent(text) {
   return AI_DRAW_KEYWORDS.some((kw) => lower.indexOf(kw) !== -1);
 }
 
+// Заголовки для Worker'ов ИИ (lunox-gemini / lunox-gigachat): Firebase idToken в Authorization.
+async function lunoxAiHeaders() {
+  const u = (typeof auth !== 'undefined') ? auth.currentUser : null;
+  if (!u) throw new Error('Войдите в аккаунт, чтобы пользоваться ИИ.');
+  const idToken = await u.getIdToken();
+  return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + idToken };
+}
 // Общая функция вызова GigaChat (через свою функцию-прокси) — используется и
 // вкладкой «ИИ-помощник», и чатом с ботом-контактом. model необязателен —
 // если не передать, серверная функция сама подставит модель по умолчанию.
@@ -3171,7 +3221,7 @@ async function callGigaChat(messages, model, attachment) {
   try {
     const resp = await fetch('https://lunox-gigachat.lunox-messenger.workers.dev', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await lunoxAiHeaders(),
       // attachment: { data: <base64 без префикса data:>, mimeType, filename } —
       // если передан, серверная функция сама загрузит фото в хранилище
       // GigaChat и приложит его к последнему сообщению пользователя.
@@ -3212,7 +3262,7 @@ async function callGigaChatImage(prompt, model) {
   try {
     const resp = await fetch('https://lunox-gigachat.lunox-messenger.workers.dev', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await lunoxAiHeaders(),
       body: JSON.stringify({ mode: 'image', prompt, model }),
       signal: controller.signal
     });
@@ -3250,7 +3300,7 @@ async function callGemini(messages, model, attachment) {
   try {
     const resp = await fetch('https://lunox-gemini.lunox-messenger.workers.dev', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await lunoxAiHeaders(),
       body: JSON.stringify(attachment ? { messages, model, attachment } : { messages, model }),
       signal: controller.signal
     });
@@ -3284,7 +3334,7 @@ async function callGeminiImage(prompt) {
   try {
     const resp = await fetch('https://lunox-gemini.lunox-messenger.workers.dev', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await lunoxAiHeaders(),
       body: JSON.stringify({ mode: 'image', prompt }),
       signal: controller.signal
     });
@@ -4042,7 +4092,7 @@ async function writeBanRecords(target, reason) {
     jobs.push(db.collection('banned_users').doc(uid).set(data));
   }
   if (email && !isProtectedEmail(email)) {
-    banEmailKeys(email).forEach(k => jobs.push(db.collection('banned_emails').doc(k).set(data)));
+    banEmailKeys(email).forEach(k => jobs.push(db.collection('banned_emails').doc(k).set({ bannedAt: data.bannedAt })));
   }
   const res = await Promise.allSettled(jobs);
   const failed = res.filter(r => r.status === 'rejected');
@@ -4068,7 +4118,7 @@ async function banSelfSystem(reason) {
   };
   const res = await Promise.allSettled([
     db.collection('banned_users').doc(currentUser.uid).set(data),
-    db.collection('banned_emails').doc(email.replace(/\//g, '_')).set(data)
+    db.collection('banned_emails').doc(email.replace(/\//g, '_')).set({ bannedAt: data.bannedAt })
   ]);
   res.filter(r => r.status === 'rejected').forEach(r => console.error('[Lunox] Самобан не записан:', r.reason));
   return res.every(r => r.status === 'fulfilled');
@@ -4503,9 +4553,11 @@ function initials(str) {
 }
 
 function escapeHtml(str) {
-  const div = document.createElement('div');
-  div.textContent = str == null ? '' : String(str);
-  return div.innerHTML;
+  // Экранируем и кавычки: escapeHtml используется внутри HTML-атрибутов (src/href/style/data-*),
+  // textContent→innerHTML кавычки НЕ экранирует — из-за этого был stored XSS через avatarUrl/nickStyle/ссылки в сообщениях.
+  return (str == null ? '' : String(str))
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/`/g, '&#96;');
 }
 
 // ================= АВТО-ССЫЛКИ В ТЕКСТЕ СООБЩЕНИЙ =================
@@ -6291,10 +6343,10 @@ function isCreatorEmailUnverified() {
   return !!u && (u.email || '').toLowerCase() === 'lunox.messenger@gmail.com';
 }
 // Для ЧУЖИХ профилей email из Firestore не доверяем. Доверяем uid Создателя, который он сам
-// публикует в config/admins.creatorUid (писать туда по rules может только Auth-email Создателя).
+// публикует в config/adminBadges.creatorUid (публичный doc без email; писать туда по rules может только Auth-email Создателя).
 let trustedCreatorUid = null;
-let trustedAdminUids = [];      // config/admins.adminUids
-let trustedModeratorUids = [];  // config/admins.moderatorUids
+let trustedAdminUids = [];      // config/adminBadges.adminUids
+let trustedModeratorUids = [];  // config/adminBadges.moderatorUids
 function isTrustedCreatorUid(uid) {
   if (!uid) return false;
   const me = firebase.auth().currentUser;
@@ -6596,30 +6648,17 @@ async function buyOrWearBg(id) {
   if (!bg || shopBusy) return;
   shopBusy = true;
   const ref = db.collection('users').doc(currentUser.uid);
-  let paidNow = false;
   try {
-    const alreadyOwned = await db.runTransaction(async (tx) => {
+    // ОДНА атомарная запись users/{uid}: luna -price + bgInventory += [id] + activeBg.
+    // Правила (bgBuyOk) проверяют связку цена/инвентарь. Нет второго шага и отката increment.
+    await db.runTransaction(async (tx) => {
       const d = (await tx.get(ref)).data() || {};
       const inv = Array.isArray(d.bgInventory) ? d.bgInventory : ['none'];
-      if (inv.includes(id)) return true;
+      if (inv.includes(id)) { tx.update(ref, { activeBg: id }); return; }   // уже куплен — только «надеть»
       const luna = Math.max(0, Math.floor(Number(d.luna) || 0));
       if (luna < bg.price) throw new Error('NO_LUNA');
-      // Пишем ТОЛЬКО поле luna отдельной записью — правила Firestore разрешают
-      // его для владельца документа без доп. проверок (см. firestore.rules,
-      // общий allow-list полей). bgInventory/activeBg — новые кастомные поля,
-      // которые эти правила не ограничивают, поэтому пишутся вторым шагом ниже.
-      tx.update(ref, { luna: luna - bg.price });
-      paidNow = true;
-      return false;
+      tx.update(ref, { luna: luna - bg.price, bgInventory: inv.concat([id]), activeBg: id });
     });
-    try {
-      const upd = { activeBg: id };
-      if (!alreadyOwned) upd.bgInventory = firebase.firestore.FieldValue.arrayUnion(id);
-      await ref.update(upd);
-    } catch (e2) {
-      if (paidNow) { try { await ref.update({ luna: firebase.firestore.FieldValue.increment(bg.price) }); } catch (e3) {} }
-      throw e2;
-    }
   } catch (err) {
     showLunoxToast(err && err.message === 'NO_LUNA' ? 'Недостаточно лун' : 'Не удалось: ' + (err.message || err));
   } finally { shopBusy = false; }
@@ -6723,38 +6762,33 @@ async function buyOrWearContent(id) {
   shopBusy = true;
   const ref = db.collection('users').doc(currentUser.uid);
   const itemRef = db.collection('shop_content').doc(id);
-  let paidNow = false, price = 0;
   try {
-    const alreadyOwned = await db.runTransaction(async (tx) => {
+    // Покупка = ОДНА атомарная запись users/{uid}: luna -price + owned* += [id] + active*.
+    // (Один документ → одна запись; транзакция даёт свежий баланс. firestore.rules проверяют связку luna/owned*/price.)
+    await db.runTransaction(async (tx) => {
       const d = (await tx.get(ref)).data() || {};
-      if ((Array.isArray(d[t.owned]) ? d[t.owned] : []).includes(id)) return true;
+      const own = Array.isArray(d[t.owned]) ? d[t.owned] : [];
+      const upd = it.type === 'avatar' ? { avatarUrl: it.url }
+        : it.type === 'bg' ? { activeBg: id, activeBgUrl: it.url }
+        : it.type === 'frame' ? { activeFrame: 'none', activeFrameId: id, activeFrameUrl: it.url }
+        : {};   // подарок/эксклюзив/стикер/тема/эффект: только запись в инвентарь
+      if (own.includes(id)) { if (Object.keys(upd).length) tx.update(ref, upd); return; }   // уже куплено — только «надеть»
       const cur = await tx.get(itemRef);
       if (!cur.exists) throw new Error('Предмет больше недоступен');
       const c = cur.data();
       if (c.isHidden) throw new Error('Предмет больше недоступен');
       if (scSoldOut(c)) throw new Error('Распродано');
       if (!scInPeriod(c)) throw new Error('Предмет вне срока продажи');
-      price = Math.max(0, Math.floor(Number(c.price) || 0));
+      const price = Math.max(0, Math.floor(Number(c.price) || 0));
       const luna = Math.max(0, Math.floor(Number(d.luna) || 0));
       if (luna < price) throw new Error('NO_LUNA');
-      // Как и у фонов: luna пишем отдельным полем (см. firestore.rules), инвентарь — вторым шагом.
-      if (price > 0) { tx.update(ref, { luna: luna - price }); paidNow = true; }
-      return false;
+      if (price > 0) upd.luna = luna - price;
+      upd[t.owned] = own.concat([id]);
+      tx.update(ref, upd);
     });
-    try {
-      const upd = it.type === 'avatar' ? { avatarUrl: it.url }
-        : it.type === 'bg' ? { activeBg: id, activeBgUrl: it.url }
-        : it.type === 'frame' ? { activeFrame: 'none', activeFrameId: id, activeFrameUrl: it.url }
-        : {};   // подарок/эксклюзив/стикер/тема/эффект: только запись в инвентарь
-      if (!alreadyOwned) upd[t.owned] = firebase.firestore.FieldValue.arrayUnion(id);
-      if (Object.keys(upd).length) await ref.update(upd);
-      // Копия ссылки у покупателя: предмет остаётся доступным, даже если документ shop_content скрыт или удалён.
-      const hasMeta = !!(currentUserData && currentUserData.ownedMeta && currentUserData.ownedMeta[id]);
-      if (!hasMeta) { try { await ref.set({ ownedMeta: { [id]: { type: it.type, url: it.url, name: it.name || '' } } }, { merge: true }); } catch (e4) {} }
-    } catch (e2) {
-      if (paidNow && price > 0) { try { await ref.update({ luna: firebase.firestore.FieldValue.increment(price) }); } catch (e3) {} }
-      throw e2;
-    }
+    // Копия ссылки у покупателя: предмет остаётся доступным, даже если документ shop_content скрыт или удалён.
+    const hasMeta = !!(currentUserData && currentUserData.ownedMeta && currentUserData.ownedMeta[id]);
+    if (!hasMeta) { try { await ref.set({ ownedMeta: { [id]: { type: it.type, url: it.url, name: it.name || '' } } }, { merge: true }); } catch (e4) {} }
   } catch (err) {
     showLunoxToast(err && err.message === 'NO_LUNA' ? 'Недостаточно лун' : 'Не удалось: ' + (err.message || err));
   } finally { shopBusy = false; }
@@ -7560,15 +7594,17 @@ document.getElementById('promo-activate-btn').addEventListener('click', async ()
   try {
     const reward = await db.runTransaction(async (tx) => {
       const codeRef = db.collection('promocodes').doc(code);
+      const usedRef = codeRef.collection('used').doc(currentUser.uid);
       const userRef = db.collection('users').doc(currentUser.uid);
       const snap = await tx.get(codeRef);
+      const usedSnap = await tx.get(usedRef);
       if (!snap.exists) throw new Error('Промокод не найден.');
       const d = snap.data();
       if (!d.active) throw new Error('Промокод больше не активен.');
       if (d.expiresAt && d.expiresAt.toMillis && d.expiresAt.toMillis() < Date.now()) throw new Error('Срок действия промокода истёк.');
       if ((d.usedCount || 0) >= d.maxUses) throw new Error('Лимит активаций исчерпан.');
-      const usedBy = d.usedBy || [];
-      if (usedBy.includes(currentUser.uid)) throw new Error('Вы уже активировали этот промокод.');
+      // usedBy (старый формат, массив uid) учитываем, пока миграция не вычистила его из документа.
+      if (usedSnap.exists || (Array.isArray(d.usedBy) && d.usedBy.includes(currentUser.uid))) throw new Error('Вы уже активировали этот промокод.');
       if (typeof d.reward === 'string') {
         // Награда-предмет (avatar:ID / bg:ID / frame:ID). sold НЕ трогаем.
         const m = /^(\w+):(.+)$/.exec(d.reward);
@@ -7579,20 +7615,16 @@ document.getElementById('promo-activate-btn').addEventListener('click', async ()
         if (!itSnap.exists || itSnap.data().type !== m[1]) throw new Error('Предмет из промокода больше не существует.');
         const ownedArr = (uSnap.data() || {})[t.owned];
         if (Array.isArray(ownedArr) && ownedArr.includes(m[2])) return { already: true };   // промокод не тратится
-        tx.update(codeRef, {
-          usedCount: (d.usedCount || 0) + 1,
-          usedBy: firebase.firestore.FieldValue.arrayUnion(currentUser.uid)
-        });
+        tx.update(codeRef, { usedCount: (d.usedCount || 0) + 1 });
+        tx.set(usedRef, { at: firebase.firestore.FieldValue.serverTimestamp() });
         tx.update(userRef, {
           [t.owned]: firebase.firestore.FieldValue.arrayUnion(m[2]),
           activatedPromocodes: firebase.firestore.FieldValue.arrayUnion({ code, reward: d.reward, date: Date.now() })
         });
         return { item: itSnap.data().name || t.label };
       }
-      tx.update(codeRef, {
-        usedCount: (d.usedCount || 0) + 1,
-        usedBy: firebase.firestore.FieldValue.arrayUnion(currentUser.uid)
-      });
+      tx.update(codeRef, { usedCount: (d.usedCount || 0) + 1 });
+      tx.set(usedRef, { at: firebase.firestore.FieldValue.serverTimestamp() });
       tx.update(userRef, {
         luna: firebase.firestore.FieldValue.increment(d.reward),
         activatedPromocodes: firebase.firestore.FieldValue.arrayUnion({ code, reward: d.reward, date: Date.now() })
@@ -7673,7 +7705,7 @@ document.getElementById('promo-create-btn').addEventListener('click', async () =
     if ((await ref.get()).exists) { showLunoxToast('Такой промокод уже существует'); return; }
     await ref.set({
       code, reward, maxUses, maxPerUser,
-      usedCount: 0, usedBy: [],
+      usedCount: 0,
       expiresAt: expiresVal ? new Date(expiresVal) : null,
       createdBy: currentUser.uid,
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -7724,7 +7756,16 @@ function openPromoEditModal(id) {
 async function deletePromocode(id) {
   if (!isShopAdmin()) return;
   if (!confirm(`Удалить промокод ${id}?`)) return;
-  try { await db.collection('promocodes').doc(id).delete(); }
+  try {
+    // Подколлекция used/{uid} сама не удаляется — чистим, чтобы повторно созданный код не считался «уже активированным».
+    const usedSnap = await db.collection('promocodes').doc(id).collection('used').get();
+    for (let i = 0; i < usedSnap.docs.length; i += 400) {
+      const b = db.batch();
+      usedSnap.docs.slice(i, i + 400).forEach(u => b.delete(u.ref));
+      await b.commit();
+    }
+    await db.collection('promocodes').doc(id).delete();
+  }
   catch (err) { showLunoxToast('Ошибка: ' + (err.message || err)); }
 }
 
@@ -7764,11 +7805,14 @@ async function maybeEnsureInviteCode(uid, data) {
       if (!snap.exists) { code = tryCode; break; }
     }
     if (!code) return;
-    await db.collection('invites').doc(code).set({
-      createdBy: uid, usedBy: null, usedAt: null, rewarded: false,
+    // Один batch: правила (invites.create) требуют users.inviteCode null -> code в той же записи — 1 инвайт на uid.
+    const invBatch = db.batch();
+    invBatch.set(db.collection('invites').doc(code), {
+      createdBy: uid, used: false, usedAt: null, rewarded: false,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
-    await db.collection('users').doc(uid).set({ inviteCode: code }, { merge: true });
+    invBatch.set(db.collection('users').doc(uid), { inviteCode: code }, { merge: true });
+    await invBatch.commit();
   } catch (e) {
     console.error('[Lunox] Не удалось создать инвайт-код:', e);
   } finally {
@@ -7789,7 +7833,7 @@ async function maybeClaimInviteRewards(uid, data) {
     const toReward = [];
     snap.forEach(doc => {
       const d = doc.data();
-      if (d.usedBy && !d.rewarded) toReward.push(doc.id);
+      if ((d.used === true || d.usedBy) && !d.rewarded) toReward.push(doc.id);
     });
     if (!toReward.length) return;
     // Правило inviteRewardOk() разрешает изменение invitedCount ровно на 1 за
@@ -7811,6 +7855,41 @@ async function maybeClaimInviteRewards(uid, data) {
     console.error('[Lunox] Не удалось начислить награду за инвайт:', e);
   } finally {
     inviteClaimInFlight.delete(uid);
+  }
+}
+
+// Отметка «инвайт использован» — только после подтверждения почты и не позже 1 часа после регистрации (rules).
+const inviteMarkInFlight = new Set();
+async function maybeMarkInviteUsed(uid, data) {
+  if (!currentUser || uid !== currentUser.uid || currentUser.emailVerified !== true) return;
+  const inviterUid = data && data.invitedBy;
+  if (!inviterUid || typeof inviterUid !== 'string' || inviterUid === uid) return;
+  const ca = data.createdAt && data.createdAt.toMillis ? data.createdAt.toMillis() : 0;
+  if (!ca || Date.now() - ca > 55 * 60 * 1000) return;
+  const flagKey = 'lunoxInviteMarked:' + uid;
+  try { if (localStorage.getItem(flagKey)) return; } catch (e) {}
+  if (inviteMarkInFlight.has(uid)) return;
+  inviteMarkInFlight.add(uid);
+  try {
+    const iu = await db.collection('users').doc(inviterUid).get();
+    const code = iu.exists ? iu.data().inviteCode : null;
+    if (code) {
+      const ref = db.collection('invites').doc(code);
+      const snap = await ref.get();
+      const inv = snap.exists ? snap.data() : null;
+      if (inv && !inv.used && !inv.usedBy && inv.createdBy === inviterUid) {
+        // uid приглашённого пишем не в инвайт, а в подколлекцию used/{uid} (читает только админ / сам uid).
+        const useBatch = db.batch();
+        useBatch.update(ref, { used: true, usedAt: firebase.firestore.FieldValue.serverTimestamp() });
+        useBatch.set(ref.collection('used').doc(uid), { at: firebase.firestore.FieldValue.serverTimestamp() });
+        await useBatch.commit();
+      }
+    }
+    try { localStorage.setItem(flagKey, '1'); } catch (e) {}
+  } catch (e) {
+    console.error('[Lunox] Не удалось отметить инвайт использованным:', e && (e.code || e.message));
+  } finally {
+    inviteMarkInFlight.delete(uid);
   }
 }
 
@@ -8252,7 +8331,7 @@ document.getElementById('input-username').addEventListener('input', (e) => {
   statusEl.className = 'username-status checking';
   usernameCheckTimer = setTimeout(async () => {
     try {
-      const snap = await db.collection('usernames').doc(username).get();
+      const snap = await db.collection('usernames_public').doc(username).get();
       if (document.getElementById('input-username').value.trim().toLowerCase() !== username) return; // устарело
       if (snap.exists) {
         statusEl.className = 'username-status taken';
@@ -8558,7 +8637,7 @@ document.getElementById('btn-auth-submit').addEventListener('click', async () =>
       return;
     }
     // --- Финальная проверка занятости username прямо перед записью (на случай гонки) ---
-    const unameSnap = await db.collection('usernames').doc(username).get();
+    const unameSnap = await db.collection('usernames_public').doc(username).get();
     if (unameSnap.exists) {
       showAuthError('Этот @username только что заняли, выберите другой.');
       btn.disabled = false;
@@ -8604,7 +8683,7 @@ document.getElementById('btn-auth-submit').addEventListener('click', async () =>
         const inviteSnap = await db.collection('invites').doc(pendingInviteCodeFromUrl).get();
         if (inviteSnap.exists) {
           const inv = inviteSnap.data();
-          if (!inv.usedBy && inv.createdBy !== cred.user.uid) {
+          if (!inv.used && !inv.usedBy && inv.createdBy !== cred.user.uid) {
             const limitOk = await checkInviteDailyLimitOk(inv.createdBy);
             if (limitOk) {
               resolvedInviterUid = inv.createdBy;
@@ -8614,20 +8693,12 @@ document.getElementById('btn-auth-submit').addEventListener('click', async () =>
         }
       } catch (e) { console.error('[Lunox] Ошибка проверки инвайт-кода:', e); }
     }
-    // --- Значок по месту регистрации: считаем usersCount ДО записи своего профиля,
-    // чтобы позиция была честной (агрегатный count() — не тянет все документы). ---
-    let regBadge = null;
-    try {
-      const cntSnap = await db.collection('users').count().get();
-      const usersCountBefore = cntSnap.data().count || 0;
-      regBadge = regBadgeIdForPosition(usersCountBefore + 1);
-    } catch (e) { console.error('[Lunox] Не удалось посчитать usersCount для значка:', e); }
     // Профиль пишем первым же шагом, пока пользователь ещё точно авторизован —
     // это должно случиться раньше любого signOut, чтобы запись не упала по правилам Firestore.
-    await db.collection('users').doc(cred.user.uid).set({
+    const regUserData = {
       name: name,
       nameLower: name.toLowerCase(),
-      badge: regBadge,
+      badge: null,
       bgInventory: ['none'],
       activeBg: 'none',
       // Явно задаём поля магазина рамок при создании — shopCreateOk() в
@@ -8642,37 +8713,52 @@ document.getElementById('btn-auth-submit').addEventListener('click', async () =>
       // «Удаленный аккаунт» или пропадёт (см. restoreNicknameIfBroken).
       originalName: name,
       username: username,
-      email: email,
-      phone: phone || '',
       avatarUrl: avatarUrl || '',
       bio: '',
       status: 'online',
       privacyStatus: 'everyone',
       privacyMessages: 'everyone',
-      blockedUsers: [],
-      favorites: [],
       nameChanges: [],
       // Инвайт-система: кто пригласил (или null), свой инвайт-код создастся
       // позже при первом входе (см. maybeEnsureInviteCode).
       invitedBy: resolvedInviterUid,
       invitedCount: 0,
       inviteCode: null,
-      strikes: 0,
-      strikesHistory: [],
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
+    };
+    // Значок по месту регистрации: профиль + счётчик config/stats + маркер reg_marks/{uid} — ОДНА транзакция.
+    // Нет config/stats или запись отклонена → профиль пишется без значка, регистрация не ломается.
+    const regUserRef = db.collection('users').doc(cred.user.uid);
+    let regProfileSaved = false;
+    try {
+      const regStatsRef = db.collection('config').doc('stats');
+      await db.runTransaction(async (tx) => {
+        const st = await tx.get(regStatsRef);
+        const before = st.exists ? st.data().usersCount : null;
+        if (!Number.isInteger(before) || before < 0) throw new Error('NO_STATS');
+        const pos = before + 1;
+        tx.update(regStatsRef, { usersCount: pos });
+        tx.set(db.collection('reg_marks').doc(cred.user.uid), { createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+        tx.set(regUserRef, Object.assign({}, regUserData, { badge: regBadgeIdForPosition(pos) }), { merge: true });
+      });
+      regProfileSaved = true;
+    } catch (e) { console.warn('[Lunox] Значок регистрации не выдан:', e && (e.code || e.message)); }
+    if (!regProfileSaved) await regUserRef.set(regUserData, { merge: true });
+    // Приватная часть профиля — отдельная запись (правила: только владелец).
+    try {
+      await db.collection('users').doc(cred.user.uid).collection('private').doc('main').set({
+        email: email,
+        phone: phone || '',
+        fcmTokens: []
+      }, { merge: true });
+    } catch (e) { console.error('[Lunox] Не удалось записать private/main (будет создан при входе):', e); }
     // Резервируем username в отдельной коллекции для быстрой проверки уникальности.
-    await db.collection('usernames').doc(username).set({ uid: cred.user.uid });
-    // Помечаем инвайт использованным (награда пригласившему начислится ему
-    // самому при следующем входе — см. maybeClaimInviteRewards).
-    if (resolvedInviteCode) {
-      try {
-        await db.collection('invites').doc(resolvedInviteCode).update({
-          usedBy: cred.user.uid,
-          usedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-      } catch (e) { console.error('[Lunox] Не удалось отметить инвайт использованным:', e); }
-    }
+    { const unBatch = db.batch();
+      unBatch.set(db.collection('usernames').doc(username), { uid: cred.user.uid });
+      unBatch.set(db.collection('usernames_public').doc(username), { taken: true });
+      await unBatch.commit(); }
+    // Инвайт помечается использованным ПОЗЖЕ — после подтверждения почты (правила требуют email_verified),
+    // см. maybeMarkInviteUsed. Награда пригласившему начислится ему при следующем входе (maybeClaimInviteRewards).
     // --- Защита №6: уведомление в Telegram о регистрации нового пользователя ---
     sendTelegramAlert(
       `Lunox: новая регистрация\n` +
@@ -8992,9 +9078,13 @@ window.addEventListener('beforeunload', () => { stopPresence(); });
 
 async function loadMyProfileUI() {
   try {
-    const snap = await db.collection('users').doc(currentUser.uid).get();
+    const [snap, privSnap] = await Promise.all([
+      db.collection('users').doc(currentUser.uid).get(),
+      myPrivateRef().get().catch(() => null)
+    ]);
     const data = snap.data() || {};
-    currentUserData = { uid: currentUser.uid, ...data };
+    if (privSnap && privSnap.exists) myPrivateData = privSnap.data() || {};
+    currentUserData = { ...data, ...myPrivateData, uid: currentUser.uid };
     applyMyProfileFieldsToUI(currentUserData);
     applyAppearanceFromFirestore(data);
     subscribeToMyWall();
@@ -9650,7 +9740,8 @@ document.getElementById('btn-save-nickname').addEventListener('click', async () 
       const allowed = await enforceNameChangeLimit();
       if (!allowed) { alert('Слишком часто. Подожди час.'); return; }
     }
-    await db.collection('users').doc(currentUser.uid).set({ name: value, nameLower: value.toLowerCase(), bio: bio, phone: phone, city: city, website: website }, { merge: true });
+    await db.collection('users').doc(currentUser.uid).set({ name: value, nameLower: value.toLowerCase(), bio: bio, city: city, website: website }, { merge: true });
+    await myPrivateRef().set({ phone: phone }, { merge: true });
     clearProfileInputsDirty();
     await loadMyProfileUI();
     btn.textContent = 'Сохранено';
@@ -9708,7 +9799,7 @@ function myUnameFormatError(u) {
     setMyUnameState('checking');
     myUnameCheckTimer = setTimeout(async () => {
       try {
-        const snap = await db.collection('usernames').doc(cleaned).get();
+        const snap = await db.collection('usernames_public').doc(cleaned).get();
         if (reqId !== myUnameReqId) return;
         if (snap.exists) setMyUnameState('bad', 'Этот @username занят.');
         else setMyUnameState('ok', 'Свободен.');
@@ -9739,6 +9830,8 @@ async function commitMyUsernameIfChanged() {
   const userRef = db.collection('users').doc(uid);
   const newRef = db.collection('usernames').doc(next);
   const oldRef = cur ? db.collection('usernames').doc(cur) : null;
+  const newPubRef = db.collection('usernames_public').doc(next);
+  const oldPubRef = cur ? db.collection('usernames_public').doc(cur) : null;
   const today = localDayKey();
   try {
     await db.runTransaction(async (tx) => {
@@ -9751,7 +9844,8 @@ async function commitMyUsernameIfChanged() {
       const count = ch.day === today ? (ch.count || 0) : 0;
       if (count >= USERNAME_CHANGE_LIMIT_PER_DAY) throw new Error('UNAME_LIMIT');
       tx.set(newRef, { uid: uid });
-      if (oSnap && oSnap.exists && (oSnap.data() || {}).uid === uid) tx.delete(oldRef);
+      tx.set(newPubRef, { taken: true });
+      if (oSnap && oSnap.exists && (oSnap.data() || {}).uid === uid) { tx.delete(oldRef); tx.delete(oldPubRef); }
       tx.set(userRef, { username: next, usernameChanges: { day: today, count: count + 1 } }, { merge: true });
     });
   } catch (err) {
@@ -10969,7 +11063,7 @@ document.getElementById('row-blocked').addEventListener('click', () => {
   modalSheetEl.querySelectorAll('[data-unblock-btn]').forEach(btn => {
     btn.addEventListener('click', async () => {
       const uid = btn.getAttribute('data-unblock-btn');
-      await db.collection('users').doc(currentUser.uid).set({
+      await myPrivateRef().set({
         blockedUsers: firebase.firestore.FieldValue.arrayRemove(uid)
       }, { merge: true });
       currentUserData.blockedUsers = (currentUserData.blockedUsers || []).filter(id => id !== uid);
@@ -11071,6 +11165,7 @@ document.getElementById('row-delete-account').addEventListener('click', () => {
       await currentUser.reauthenticateWithCredential(credential);
       const uidBeingDeleted = currentUser.uid;
       accountSelfDeleting = true; // не даём handleProfileRemoved() разлогинить нас посреди удаления
+      try { await myPrivateRef().delete(); } catch (e) { /* best-effort */ }
       await db.collection('users').doc(currentUser.uid).delete();
       await currentUser.delete();
       const remaining = removeSavedAccountByUid(uidBeingDeleted);
@@ -11099,13 +11194,13 @@ async function initPushNotifications() {
   try {
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') return;
-    const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+    const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js', { scope: '/firebase-cloud-messaging-push-scope' });
     const token = await messaging.getToken({
       vapidKey: 'BKg6DGs3Xp7Mcdlpx1v6BR_X3L3ZjfnVKlfg0iHWPFdf9goo1_370aNgsCUlp5oNJi2YJpozE49xwHpSrxKGWtg',
       serviceWorkerRegistration: swReg
     });
     if (token) {
-      await db.collection('users').doc(currentUser.uid).set({ fcmTokens: firebase.firestore.FieldValue.arrayUnion(token) }, { merge: true });
+      await myPrivateRef().set({ fcmTokens: firebase.firestore.FieldValue.arrayUnion(token) }, { merge: true });
     }
   } catch (err) {
     console.warn('[Lunox] Push-уведомления не настроены:', err);
@@ -11167,6 +11262,7 @@ async function checkVerifiedNow() {
     await u.reload();
     if (u.emailVerified) {
       try { await u.getIdToken(true); } catch (e) {}
+      try { if (currentUserData) maybeMarkInviteUsed(u.uid, currentUserData); } catch (e) {}
       updateVerifyUI();
       try { if (typeof listenToAdmins === 'function') listenToAdmins(); } catch (e) {}
       showLunoxToast('Email подтверждён', lxIc('check', 18));
@@ -11251,6 +11347,8 @@ auth.onAuthStateChanged(async (user) => {
     currentUser = null;
     currentUserData = {};
     if (unsubscribeUsers) unsubscribeUsers();
+    if (unsubscribeMyPrivate) { unsubscribeMyPrivate(); unsubscribeMyPrivate = null; }
+    myPrivateData = {}; myPublicRaw = null; myPrivateLoaded = false;
     if (unsubscribeMyWall) { unsubscribeMyWall(); unsubscribeMyWall = null; }
     if (unsubscribeChats) unsubscribeChats();
     if (unsubscribeMessages) unsubscribeMessages();
@@ -11258,6 +11356,7 @@ auth.onAuthStateChanged(async (user) => {
     if (unsubscribeTyping) unsubscribeTyping();
     if (unsubscribeNotes) unsubscribeNotes();
     if (unsubscribeAdmins) unsubscribeAdmins();
+    if (unsubscribeAdminBadges) { unsubscribeAdminBadges(); unsubscribeAdminBadges = null; }
     if (unsubscribeAdminLogs) { unsubscribeAdminLogs(); unsubscribeAdminLogs = null; }
     if (unsubscribeBanned) { unsubscribeBanned(); unsubscribeBanned = null; }
     bannedUidsSet = new Set(); selfDocSeen = false; accountSelfDeleting = false;
@@ -11319,13 +11418,27 @@ auth.onAuthStateChanged(async (user) => {
 function listenToUsers() {
   if (unsubscribeUsers) unsubscribeUsers();
   selfDocSeen = false;
+  if (unsubscribeMyPrivate) { unsubscribeMyPrivate(); unsubscribeMyPrivate = null; }
+  myPrivateLoaded = false; myPublicRaw = null;
+  unsubscribeMyPrivate = myPrivateRef().onSnapshot((pdoc) => {
+    myPrivateData = pdoc.exists ? (pdoc.data() || {}) : {};
+    myPrivateLoaded = true;
+    if (currentUserData && currentUserData.uid === currentUser.uid) {
+      currentUserData = { ...currentUserData, ...myPrivateData, uid: currentUser.uid };
+      allUsersMap[currentUser.uid] = currentUserData;
+      applyMyProfileFieldsToUI(currentUserData);
+    }
+    migrateMyPrivate();
+  }, (err) => console.warn('[Lunox] private/main недоступен:', err && (err.code || err.message)));
   unsubscribeUsers = db.collection('users').doc(currentUser.uid).onSnapshot((doc) => {
     if (!doc.exists) {
       if (selfDocSeen) { selfDocSeen = false; handleProfileRemoved(); }
       return;
     }
     selfDocSeen = true;
-    const data = { ...doc.data(), uid: doc.id };
+    myPublicRaw = doc.data() || {};
+    const data = { ...myPublicRaw, ...myPrivateData, uid: doc.id };
+    migrateMyPrivate();
     allUsersMap[doc.id] = data;
     currentUserData = data;
     applyAutoReplyUI();
@@ -11350,8 +11463,10 @@ function listenToUsers() {
     }
     maybeRestoreNickname(doc.id, data);
     maybeGenerateUsername(doc.id, data);
+    maybeEnsureUsernamePublic(doc.id, data);
     maybeEnsureInviteCode(doc.id, data);
     maybeClaimInviteRewards(doc.id, data);
+    maybeMarkInviteUsed(doc.id, data);
     ensureShopConfigLoaded();
     syncTrustedUids();
     markTabDirty('tab-chats');
@@ -11388,7 +11503,9 @@ function syncUsersCacheFromChats() {
     const unsub = db.collection('users').doc(uid).onSnapshot((doc) => {
       if (!doc.exists) return;
       const data = { ...doc.data(), uid };
+      if (adminEmailCache[uid]) data.email = adminEmailCache[uid];
       allUsersMap[uid] = data;
+      loadAdminEmail(uid);
       const idx = allUsersCache.findIndex((u) => u.uid === uid);
       if (idx >= 0) allUsersCache[idx] = data; else allUsersCache.push(data);
       maybeRestoreNickname(uid, data);
@@ -11431,6 +11548,22 @@ function showLunoxToast(message, icon) {
 // чтобы не писать повторно на каждый снапшот (см. nicknameRestoreInFlight выше).
 const usernameGenerateInFlight = new Set();
 
+// Самолечение: у старых аккаунтов может не быть usernames_public/{username} — создаём для СВОЕГО ника
+// (rules разрешают, если usernames/{ник}.uid == мой uid). Основная миграция — tools/migrate_uid_privacy.js.
+const usernamePublicChecked = new Set();
+async function maybeEnsureUsernamePublic(uid, data) {
+  if (!currentUser || uid !== currentUser.uid) return;
+  const un = ((data && data.username) || '').trim().toLowerCase();
+  if (!un || usernamePublicChecked.has(un)) return;
+  usernamePublicChecked.add(un);
+  try {
+    const pub = db.collection('usernames_public').doc(un);
+    if ((await pub.get()).exists) return;
+    const own = await db.collection('usernames').doc(un).get();
+    if (own.exists && (own.data() || {}).uid === uid) await pub.set({ taken: true });
+  } catch (e) { /* не критично: скрипт миграции дозаполнит */ }
+}
+
 // Задача 3: если у users/{uid} нет username (старый аккаунт, созданный до
 // появления этого поля) — генерируем lunox_XXXX, резервируем в usernames/{u},
 // пишем в профиль и показываем уведомление. Чинит только СВОЙ профиль —
@@ -11445,11 +11578,14 @@ async function maybeGenerateUsername(uid, data) {
     for (let attempt = 0; attempt < 8; attempt++) {
       const suffix = Math.random().toString(36).slice(2, 6).toLowerCase();
       const tryName = 'lunox_' + suffix;
-      const snap = await db.collection('usernames').doc(tryName).get();
+      const snap = await db.collection('usernames_public').doc(tryName).get();
       if (!snap.exists) { candidate = tryName; break; }
     }
     if (!candidate) return;
-    await db.collection('usernames').doc(candidate).set({ uid: uid });
+    { const unBatch = db.batch();
+      unBatch.set(db.collection('usernames').doc(candidate), { uid: uid });
+      unBatch.set(db.collection('usernames_public').doc(candidate), { taken: true });
+      await unBatch.commit(); }
     await db.collection('users').doc(uid).set({ username: candidate }, { merge: true });
     showLunoxToast(`Вам присвоен @${candidate}. Можно поменять в профиле.`, lxIc('star', 18));
   } catch (e) {
@@ -11645,6 +11781,7 @@ const LOGIN_ATTEMPT_LIMIT = 5;                       // не больше 5 не
 const LOGIN_ATTEMPT_WINDOW_MS = 10 * 60 * 1000;      // за 10 минут
 const SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000;      // автовыход через 24 часа
 
+// TODO (позже, с ПК): security_* читаются ДО входа (get: true в rules) — перенести в Cloudflare Worker и закрыть get для не-админов.
 // Проверка и регистрация попытки регистрации с данного IP (транзакция Firestore —
 // читаем список меток времени за последние 24ч, если их уже >= лимита — отказ,
 // иначе дописываем текущую метку). Возвращает true, если регистрацию можно продолжать.
@@ -11964,9 +12101,10 @@ let adminsCache = []; // [{ email, role }]
 let currentAdminRole = null; // 'creator' | 'admin' | 'moderator' | null
 let isCurrentUserAdmin = false;
 let unsubscribeAdmins = null;
+let unsubscribeAdminBadges = null;
 
 // Бейдж роли — ТОЛЬКО по uid. email/role из users/{uid} (Firestore) полностью игнорируются.
-// Свой аккаунт: по Auth-email. Чужие: uid должен быть в config/admins (creatorUid/adminUids/moderatorUids).
+// Свой аккаунт: по Auth-email. Чужие: uid должен быть в config/adminBadges (creatorUid/adminUids/moderatorUids).
 function getAdminRoleInfo(email, uid) {
   if (!uid) return null;
   const me = firebase.auth().currentUser;
@@ -12001,7 +12139,7 @@ function syncTrustedUids() {
   const same = (a, b) => a.length === b.length && a.slice().sort().join() === b.slice().sort().join();
   if (same(adminUids, trustedAdminUids) && same(moderatorUids, trustedModeratorUids)) return;
   _trustedSyncBusy = true;
-  db.collection('config').doc('admins').set({ adminUids, moderatorUids }, { merge: true })
+  db.collection('config').doc('adminBadges').set({ adminUids, moderatorUids }, { merge: true })
     .catch(e => console.warn('[Lunox] syncTrustedUids', e))
     .finally(() => { _trustedSyncBusy = false; });
 }
@@ -12026,8 +12164,28 @@ function renderMyProfileRoleBadge() {
   el.innerHTML = (currentUser && currentUser.email) ? renderAdminRoleBadge(currentUser.email, currentUser.uid) : '';
 }
 
+// Публичный документ только с uid (без email): по нему все вошедшие рисуют бейджи ролей.
+function listenToAdminBadges() {
+  if (unsubscribeAdminBadges) unsubscribeAdminBadges();
+  const ref = db.collection('config').doc('adminBadges');
+  unsubscribeAdminBadges = ref.onSnapshot((doc) => {
+    const d = doc.exists ? (doc.data() || {}) : {};
+    trustedCreatorUid = d.creatorUid || null;
+    trustedAdminUids = Array.isArray(d.adminUids) ? d.adminUids.filter(x => typeof x === 'string') : [];
+    trustedModeratorUids = Array.isArray(d.moderatorUids) ? d.moderatorUids.filter(x => typeof x === 'string') : [];
+    if (isRealCreator()) {
+      trustedCreatorUid = currentUser.uid;
+      if (d.creatorUid !== currentUser.uid) ref.set({ creatorUid: currentUser.uid }, { merge: true }).catch(() => {});
+    }
+    renderMyProfileRoleBadge();
+    syncTrustedUids();
+    markTabDirty('tab-chats');
+  }, (err) => console.warn('[Lunox] adminBadges:', err && (err.code || err.message)));
+}
+
 function listenToAdmins() {
   if (unsubscribeAdmins) unsubscribeAdmins();
+  listenToAdminBadges();
   const adminDocRef = db.collection('config').doc('admins');
   unsubscribeAdmins = adminDocRef.onSnapshot(async (doc) => {
     const docData0 = doc.exists ? (doc.data() || {}) : {};
@@ -12065,15 +12223,21 @@ function listenToAdmins() {
     const myEmail = (currentUser && currentUser.email && currentUser.emailVerified) ? currentUser.email.toLowerCase() : '';
     const myEntry = adminsCache.find(a => a.email === myEmail);
     // Роль ВСЕГДА пересчитывается по Auth-email при каждом обновлении config/admins (и при входе)
-    trustedCreatorUid = docData0.creatorUid || null;
-    trustedAdminUids = Array.isArray(docData0.adminUids) ? docData0.adminUids.filter(x => typeof x === 'string') : [];
-    trustedModeratorUids = Array.isArray(docData0.moderatorUids) ? docData0.moderatorUids.filter(x => typeof x === 'string') : [];
-    if (isRealCreator()) {
-      trustedCreatorUid = currentUser.uid;
-      if (docData0.creatorUid !== currentUser.uid) adminDocRef.set({ creatorUid: currentUser.uid }, { merge: true }).catch(() => {});
+    // Миграция (один раз, только клиент Создателя): uid-поля переезжают из config/admins
+    // (теперь только для админов) в публичный config/adminBadges.
+    if (isRealCreator() && (docData0.creatorUid || docData0.adminUids || docData0.moderatorUids)) {
+      const bd = {};
+      if (Array.isArray(docData0.adminUids)) bd.adminUids = docData0.adminUids.filter(x => typeof x === 'string');
+      if (Array.isArray(docData0.moderatorUids)) bd.moderatorUids = docData0.moderatorUids.filter(x => typeof x === 'string');
+      const del = firebase.firestore.FieldValue.delete();
+      const badgesRef = db.collection('config').doc('adminBadges');
+      (Object.keys(bd).length ? badgesRef.set(bd, { merge: true }) : Promise.resolve())
+        .then(() => adminDocRef.update({ creatorUid: del, adminUids: del, moderatorUids: del }))
+        .catch(() => {});
     }
     currentAdminRole = isRealCreator() ? 'creator' : (myEntry ? myEntry.role : (isRealSecondAdmin() ? 'admin' : null));
     isCurrentUserAdmin = !!currentAdminRole;
+    if (isCurrentUserAdmin) allUsersCache.forEach((u) => loadAdminEmail(u.uid));
     updateAdminNavVisibility();
     renderAdminPanel();
     renderAdminAdminsList();
@@ -12088,7 +12252,7 @@ function listenToAdmins() {
     listenToAdminLogs(); // журнал действий — подписка сама выключится, если роль не «Создатель»
     checkCreatorInvariantWatchdog(); // страховка: ловит нарушение роли «Создатель», даже если Rules почему-то пропустили запись
   }, (err) => {
-    console.error('[Lunox] Ошибка чтения списка админов:', err);
+    console.warn('[Lunox] Список админов недоступен (норма для обычного пользователя):', err && (err.code || err.message));
     // Резервный вариант на случай ошибки чтения (например, правила безопасности Firestore
     // ещё не разрешают читать config/admins) — главный админ всё равно должен видеть вкладку.
     currentAdminRole = isRealCreator() ? 'creator' : (isRealSecondAdmin() ? 'admin' : null);
@@ -12229,12 +12393,6 @@ function formatRegisteredAgo(ts) {
   if (hours < 24) return `${hours} ${pluralizeRu(hours, 'час', 'часа', 'часов')} назад`;
   const days = Math.floor(hours / 24);
   return `${days} ${pluralizeRu(days, 'день', 'дня', 'дней')} назад`;
-}
-function pluralizeRu(n, one, few, many) {
-  const mod10 = n % 10, mod100 = n % 100;
-  if (mod10 === 1 && mod100 !== 11) return one;
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return few;
-  return many;
 }
 
 function renderAdminPanel() {
@@ -12949,7 +13107,7 @@ function renderUserSearchResults(users, emptyMessage, searchMode) {
       const favs = currentUserData.favorites || [];
       const nowFav = !favs.includes(u.uid);
       const op = nowFav ? firebase.firestore.FieldValue.arrayUnion(u.uid) : firebase.firestore.FieldValue.arrayRemove(u.uid);
-      await db.collection('users').doc(currentUser.uid).set({ favorites: op }, { merge: true });
+      await myPrivateRef().set({ favorites: op }, { merge: true });
       currentUserData.favorites = nowFav ? [...favs, u.uid] : favs.filter(id => id !== u.uid);
       ev.currentTarget.innerHTML = nowFav ? ICONS_JS.starFilled : ICONS_JS.starOutline;
     });
@@ -13049,18 +13207,22 @@ const NICK_ANIM_PRESETS = [
   { id: 'neon', label: 'Неон', colors: ['#06b6d4','#7c3aed'] },
 ];
 
+function nickSafeColor(c) {
+  c = String(c == null ? '' : c).trim();
+  return (/^#[0-9a-fA-F]{3,8}$/.test(c) || /^(rgb|hsl)a?\(\s*[0-9.]+%?\s*(,\s*[0-9.]+%?\s*){2,3}\)$/i.test(c)) ? c : '#888888';
+}
 function renderNickHtml(nickname, nickStyle) {
   const safe = escapeHtml(nickname);
   if (!nickStyle || !nickStyle.type || !Array.isArray(nickStyle.colors) || !nickStyle.colors.length) return safe;
   if (nickStyle.type === 'solid') {
-    return `<span style="color:${escapeHtml(nickStyle.colors[0])}">${safe}</span>`;
+    return `<span style="color:${nickSafeColor(nickStyle.colors[0])}">${safe}</span>`;
   }
-  const grad = `linear-gradient(90deg,${nickStyle.colors.map(c => escapeHtml(c)).join(',')})`;
+  const grad = `linear-gradient(90deg,${nickStyle.colors.slice(0, 6).map(c => nickSafeColor(c)).join(',')})`;
   if (nickStyle.type === 'gradient') {
     return `<span class="nick-style-grad" style="background-image:${grad}">${safe}</span>`;
   }
   if (nickStyle.type === 'animated') {
-    return `<span class="nick-style-grad nick-anim-${escapeHtml(nickStyle.preset || '')}" style="background-image:${grad}">${safe}</span>`;
+    return `<span class="nick-style-grad nick-anim-${/^[A-Za-z0-9_-]{1,32}$/.test(String(nickStyle.preset || '')) ? nickStyle.preset : ''}" style="background-image:${grad}">${safe}</span>`;
   }
   return safe;
 }
@@ -13601,7 +13763,6 @@ async function openOrCreateBotChat() {
     if (!chatSnap.exists) {
       await chatRef.set({
         members: [currentUser.uid, DEEPSEEK_BOT_UID],
-        memberEmails: [currentUser.email, ''],
         isGroup: false,
         isBot: true, botType: 'deepseek',
         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -13631,7 +13792,6 @@ async function openOrCreateChat(otherUid, otherNickname) {
       }
       await chatRef.set({
         members: [currentUser.uid, otherUid],
-        memberEmails: [currentUser.email, otherUserCache.email || ''],
         isGroup: false,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
         lastMessage: '',
@@ -13806,7 +13966,7 @@ function renderUserProfileModalContent(uid, udata) {
   const canCall = uid === currentChatPartnerUid && !currentChatIsGroup;
 
   const bgPreset = findBg(udata.activeBg);
-  const bannerStyle0 = bgPreset ? ` style="background-image:${bgPreset.css}"` : customBgUrl(udata) ? ` style="background-image:url('${customBgUrl(udata).replace(/&/g, '&amp;')}')"` : (udata.bannerUrl ? ` style="background-image:url('${escapeHtml(udata.bannerUrl)}')"` : '');
+  const bannerStyle0 = bgPreset ? ` style="background-image:${bgPreset.css}"` : customBgUrl(udata) ? ` style="background-image:url('${customBgUrl(udata).replace(/&/g, '&amp;')}')"` : (udata.bannerUrl ? ` style="background-image:url('${scSafeUrl(udata.bannerUrl).replace(/&/g, '&amp;')}')"` : '');
   const bnUrl = bgPreset ? '' : (customBgUrl(udata) || udata.bannerUrl || '');
   const bannerVid = isVideoUrl(bnUrl) ? lunoxBgVideoHtml(scSafeUrl(bnUrl)) : '';
   const bannerStyle = bannerVid ? '' : bannerStyle0;
@@ -13980,7 +14140,7 @@ document.getElementById('btn-chat-menu').addEventListener('click', () => {
     document.getElementById('menu-clear-history').addEventListener('click', () => confirmClearChatHistory(currentChatId));
     document.getElementById('menu-block-user').addEventListener('click', async () => {
       const op = blocked ? firebase.firestore.FieldValue.arrayRemove(currentChatPartnerUid) : firebase.firestore.FieldValue.arrayUnion(currentChatPartnerUid);
-      await db.collection('users').doc(currentUser.uid).set({ blockedUsers: op }, { merge: true });
+      await myPrivateRef().set({ blockedUsers: op }, { merge: true });
       currentUserData.blockedUsers = blocked
         ? (currentUserData.blockedUsers || []).filter(id => id !== currentChatPartnerUid)
         : [...(currentUserData.blockedUsers || []), currentChatPartnerUid];
@@ -14265,7 +14425,7 @@ function openPollComposer() {
       });
       await db.collection('chats').doc(currentChatId).collection('messages').add({
         type: 'poll', pollId: pollRef.id,
-        senderId: currentUser.uid, senderEmail: currentUser.email,
+        senderId: currentUser.uid,
         senderName: currentUserData.name || 'Пользователь',
         createdAt: firebase.firestore.FieldValue.serverTimestamp(), readBy: [currentUser.uid]
       });
@@ -14293,12 +14453,21 @@ function renderPollBubble(container, pollId) {
     container.querySelectorAll('[data-poll-option]').forEach(optEl => {
       optEl.addEventListener('click', async () => {
         const idx = parseInt(optEl.getAttribute('data-poll-option'), 10);
-        const freshOptions = (poll.options || []).map((o, i) => {
-          const votes = (o.votes || []).filter(uid => uid !== currentUser.uid);
-          if (i === idx && myVoteIdx !== idx) votes.push(currentUser.uid);
-          return { text: o.text, votes: votes };
-        });
-        try { await db.collection('polls').doc(pollId).set({ options: freshOptions }, { merge: true }); }
+        const pollDocRef = db.collection('polls').doc(pollId);
+        try {
+          // Транзакция по свежим данным: правила разрешают менять только СВОЙ голос.
+          await db.runTransaction(async (tx) => {
+            const cur = (await tx.get(pollDocRef)).data() || {};
+            const opts = Array.isArray(cur.options) ? cur.options : [];
+            const had = opts.findIndex(o => (o.votes || []).includes(currentUser.uid));
+            const freshOptions = opts.map((o, i) => {
+              const votes = (o.votes || []).filter(uid => uid !== currentUser.uid);
+              if (i === idx && had !== idx) votes.push(currentUser.uid);
+              return { text: o.text, votes: votes };
+            });
+            tx.update(pollDocRef, { options: freshOptions });
+          });
+        }
         catch (err) { console.error(err); }
       });
     });
@@ -14368,7 +14537,7 @@ function applyReactionLocally(msg, uid, emojiOrNull) {
 
 function refreshMessageReactionsUI(msg) {
   const entry = renderedMsgEls[msg.id];
-  const rowEl = (entry && entry.el) || document.querySelector(`.msg-row[data-msg-id="${msg.id}"]`);
+  const rowEl = (entry && entry.el) || document.querySelector(`.msg-row[data-msg-id="${CSS.escape(String(msg.id))}"]`);
   if (!rowEl) return;
   const col = rowEl.querySelector('.bubble-col');
   if (!col) return;
@@ -15082,7 +15251,6 @@ async function sendMessage() {
     const payload = {
       text: text,
       senderId: currentUser.uid,
-      senderEmail: currentUser.email,
       senderName: currentUserData.name || 'Пользователь',
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       readBy: [currentUser.uid]
@@ -15135,9 +15303,10 @@ async function triggerDeepSeekReply(chatId, latestUserText) {
 }
 
 async function postDeepSeekMessage(chatId, text) {
+  text = String(text || '').slice(0, 5000);
   await db.collection('chats').doc(chatId).collection('messages').add({
     text: text, isBotReply: true, botType: 'deepseek',
-    senderId: DEEPSEEK_BOT_UID, senderEmail: '', senderName: DEEPSEEK_BOT_NAME,
+    senderId: DEEPSEEK_BOT_UID, senderName: DEEPSEEK_BOT_NAME,
     createdAt: firebase.firestore.FieldValue.serverTimestamp(), readBy: [DEEPSEEK_BOT_UID]
   });
   await db.collection('chats').doc(chatId).set({
@@ -15169,8 +15338,8 @@ async function maybeSendAutoReply(chatId, msg) {
   autoRepliedChatsThisSession.add(key);
   try {
     await db.collection('chats').doc(chatId).collection('messages').add({
-      text: ar.text, isAutoReply: true,
-      senderId: currentUser.uid, senderEmail: currentUser.email,
+      text: String(ar.text || '').slice(0, 5000), isAutoReply: true,
+      senderId: currentUser.uid,
       senderName: currentUserData.name || 'Пользователь',
       createdAt: firebase.firestore.FieldValue.serverTimestamp(), readBy: [currentUser.uid]
     });
@@ -15464,7 +15633,7 @@ document.getElementById('input-sticker-file').addEventListener('change', async (
   // чтобы не отклонять валидную картинку только из-за пустого MIME-типа.
   const looksLikeImage = (file.type && file.type.startsWith('image/')) || /\.(png|jpe?g|gif|webp|bmp)$/i.test(file.name || '');
   if (!looksLikeImage) { alert('Выберите изображение или GIF.'); return; }
-  if (file.size > STICKER_MAX_BYTES) { alert('Файл слишком большой. ImgBB принимает файлы до 32 МБ — выберите файл поменьше.'); return; }
+  if (file.size > STICKER_MAX_BYTES) { alert('Файл слишком большой. Максимальный размер — 32 МБ — выберите файл поменьше.'); return; }
   await uploadStickerFile(file);
 });
 
@@ -15475,7 +15644,7 @@ async function sendGifMessage(url) {
   try {
     await db.collection('chats').doc(currentChatId).collection('messages').add({
       gifUrl: url, type: 'gif',
-      senderId: currentUser.uid, senderEmail: currentUser.email, senderName: currentUserData.name || 'Пользователь',
+      senderId: currentUser.uid, senderName: currentUserData.name || 'Пользователь',
       createdAt: firebase.firestore.FieldValue.serverTimestamp(), readBy: [currentUser.uid]
     });
     await bumpChatAfterSend('GIF');
@@ -15489,7 +15658,7 @@ async function sendStickerMessage(url) {
   try {
     await db.collection('chats').doc(currentChatId).collection('messages').add({
       stickerUrl: url, type: 'sticker',
-      senderId: currentUser.uid, senderEmail: currentUser.email, senderName: currentUserData.name || 'Пользователь',
+      senderId: currentUser.uid, senderName: currentUserData.name || 'Пользователь',
       createdAt: firebase.firestore.FieldValue.serverTimestamp(), readBy: [currentUser.uid]
     });
     await bumpChatAfterSend('Стикер');
@@ -15830,20 +15999,9 @@ document.getElementById('input-generic-file').addEventListener('change', async (
   await sendFileMessage(file);
 });
 
-const IMGBB_API_KEY = '40b0a508d24e1a7433a95843b8fa6abc';
-const IMGBB_UPLOAD_URL = `https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`;
-
-/* ================= ЗАГРУЗКА ИЗОБРАЖЕНИЙ: CATBOX.MOE (через прокси) → (запасной) ImgBB =================
-   Основной хост — catbox.moe (без ключей, без сжатия: PNG/JPG/GIF как есть, анимация GIF
-   сохраняется). Из браузера Catbox блокирует CORS, поэтому файл идёт через Netlify Function
-   /.netlify/functions/upload (netlify/functions/upload.js), которая пересылает его на Catbox.
-   Прогресс — через общую полоску (setBusyProgress). Если прокси/Catbox недоступны (сеть,
-   таймаут, ошибка сервера) или файл больше лимита тела функции (~6 МБ) — тихо уходим на
-   uploadImageToImgBB (fallback). Не уходим на fallback только когда файл слишком большой
-   для Catbox или нет интернета. */
+/* ================= ЗАГРУЗКА ФАЙЛОВ: только Cloudflare Worker lunox-upload =================
+   Запасных хостов (ImgBB/Catbox) нет: если Worker недоступен — пользователь видит ошибку. */
 const CATBOX_MAX_BYTES = 200 * 1024 * 1024;
-const CATBOX_PROXY_ENDPOINT = '/.netlify/functions/upload';
-const CATBOX_PROXY_MAX_BYTES = 4.5 * 1024 * 1024; // лимит тела Netlify Function ~6 МБ с учётом base64
 function catboxFileName(file) {
   const n = file && file.name;
   if (n && /\.\w{2,5}$/.test(n)) return n;
@@ -15851,52 +16009,9 @@ function catboxFileName(file) {
   const ext = t === 'image/png' ? 'png' : t === 'image/gif' ? 'gif' : t === 'image/webp' ? 'webp' : 'jpg';
   return 'img_' + Date.now() + '.' + ext;
 }
-function catboxXhrUpload(file, timeoutMs, onProgress) {
-  return new Promise((resolve, reject) => {
-    const fd = new FormData();
-    fd.append('file', file, catboxFileName(file));
-    const xhr = new XMLHttpRequest();
-    const fail = (msg) => reject(new Error(msg));
-    xhr.open('POST', CATBOX_PROXY_ENDPOINT);
-    xhr.timeout = timeoutMs;
-    xhr.upload.onprogress = (ev) => { if (ev.lengthComputable && onProgress) onProgress(Math.round(ev.loaded / ev.total * 100)); };
-    xhr.onload = () => {
-      let data = null;
-      try { data = JSON.parse(xhr.responseText); } catch (e) {}
-      if (xhr.status >= 200 && xhr.status < 300 && data && /^https?:\/\//i.test(data.url || '')) return resolve(data.url);
-      fail('Catbox (прокси): ' + ((data && data.error) || 'HTTP ' + xhr.status));
-    };
-    xhr.onerror = () => fail('Прокси загрузки недоступен (сеть)');
-    xhr.ontimeout = () => fail('Прокси загрузки не отвечает');
-    xhr.send(fd);
-  });
-}
-async function uploadToCatbox(file, options) {
-  options = options || {};
-  if (file && file.size > CATBOX_MAX_BYTES) {
-    const e = new Error('Файл слишком большой (максимум 200 МБ).'); e.__lunoxTooBig = true; throw e;
-  }
-  if (typeof navigator !== 'undefined' && navigator.onLine === false) throw new Error('Нет интернета. Проверьте соединение.');
-  const onProgress = options.onProgress || ((p) => { try { setBusyProgress(p); } catch (e) {} });
-  try {
-    if (file && file.size > CATBOX_PROXY_MAX_BYTES) throw new Error('файл больше лимита прокси (~4.5 МБ)');
-    return await catboxXhrUpload(file, options.timeoutMs || 60000, onProgress);
-  } catch (err) {
-    console.warn('[Lunox] Catbox не сработал, пробую ImgBB:', err && err.message);
-    try {
-      return await uploadImageToImgBB(file, options.timeoutMs ? { timeoutMs: options.timeoutMs } : undefined);
-    } catch (err2) {
-      if (err2 && err2.__lunoxTooBig) throw err2;
-      if (typeof navigator !== 'undefined' && navigator.onLine === false) throw new Error('Нет интернета. Проверьте соединение.');
-      throw new Error('Сервер загрузки не отвечает (Catbox и запасной ImgBB). Попробуйте позже.');
-    }
-  }
-}
-
-/* ================= ЗАГРУЗКА: CLOUDFLARE WORKER (основной) → Catbox → ImgBB (fallback) =================
-   POST FormData('file') на Worker, ответ {url, file_id}. Прогресс через XHR. При любой ошибке
-   Worker'а (кроме "файл слишком большой" и "нет интернета") тихо уходим на uploadToCatbox,
-   а он — на uploadImageToImgBB. */
+/* ================= ЗАГРУЗКА: CLOUDFLARE WORKER (единственный путь) =================
+   POST FormData('file') на Worker с Authorization: Bearer <idToken>, ответ {url, file_id}.
+   Прогресс через XHR. Без fallback: при ошибке Worker'а пользователь видит её текст. */
 const WORKER_UPLOAD_URL = 'https://lunox-upload.lunox-messenger.workers.dev';
 window.LUNOX_BUILD = 'v19-worker'; console.log('[Lunox] build', window.LUNOX_BUILD);
 /* Если Worker отдаёт видео (Telegram иногда превращает GIF в mp4), <img> не сможет его показать.
@@ -15962,36 +16077,6 @@ async function uploadToWorker(file, options) {
   }
 }
 
-// Раньше здесь был один-единственный fetch без таймаута и без повторных
-// попыток: на нестабильной мобильной сети (Wi-Fi моргнул, вкладка на секунду
-// ушла в фон) запрос мог зависнуть молча или просто оборваться, и фото
-// "не отправлялось" без какой-либо понятной ошибки — спиннер "Отправка
-// фото…" мог висеть очень долго либо падать без внятной причины. Теперь —
-// тот же надёжный паттерн (жёсткий таймаут + 3 попытки с паузой), что уже
-// проверен и используется для голосовых сообщений (см. fetchWithRetry выше).
-async function uploadImageToImgBB(file, options) {
-  const timeoutMs = (options && options.timeoutMs) || 20000;
-  const formData = new FormData();
-  formData.append('image', file);
-  const resp = await fetchWithRetry(
-    IMGBB_UPLOAD_URL,
-    { method: 'POST', body: formData },
-    { retries: 3, delayMs: 1000, timeoutMs, label: 'загрузка фото (ImgBB)' }
-  );
-  let data;
-  try { data = await resp.json(); } catch (e) { throw new Error('Некорректный ответ ImgBB'); }
-  if (!resp.ok || !data || !data.success) {
-    // Ответ ImgBB о превышении лимита размера — не сетевая проблема, а окончательный
-    // отказ: повторять запрос (и вводить пользователя в заблуждение про интернет) смысла
-    // нет, файл не станет меньше от повтора. friendlyStickerError() опирается на этот флаг.
-    const msg = (data && data.error && data.error.message) || `Ошибка загрузки (HTTP ${resp.status})`;
-    const err = new Error(msg);
-    if (resp.status === 400 && /size|too large|exceed/i.test(msg)) err.__lunoxTooBig = true;
-    throw err;
-  }
-  return data.data.url;
-}
-
 async function sendImageMessage(file) {
   if (!checkAntiSpamGate()) return;
   if (!currentChatId) { alert('Чат уже закрыт — откройте его заново и повторите отправку.'); return; }
@@ -16001,7 +16086,7 @@ async function sendImageMessage(file) {
     const url = await uploadToWorker(compressed);
     await withTimeout(
       db.collection('chats').doc(currentChatId).collection('messages').add({
-        imageUrl: url, senderId: currentUser.uid, senderEmail: currentUser.email, senderName: currentUserData.name || 'Пользователь',
+        imageUrl: url, senderId: currentUser.uid, senderName: currentUserData.name || 'Пользователь',
         createdAt: firebase.firestore.FieldValue.serverTimestamp(), readBy: [currentUser.uid]
       }),
       15000,
@@ -16027,7 +16112,7 @@ async function sendFileMessage(file) {
     const url = await ref.getDownloadURL();
     await db.collection('chats').doc(currentChatId).collection('messages').add({
       fileUrl: url, fileName: file.name, fileSize: file.size,
-      senderId: currentUser.uid, senderEmail: currentUser.email, senderName: currentUserData.name || 'Пользователь',
+      senderId: currentUser.uid, senderName: currentUserData.name || 'Пользователь',
       createdAt: firebase.firestore.FieldValue.serverTimestamp(), readBy: [currentUser.uid]
     });
     await bumpChatAfterSend('Файл: ' + file.name);
@@ -16221,91 +16306,6 @@ async function uploadVoiceBlobToCatbox(blob, ext, timeoutMs) {
   return text;
 }
 
-/* ================= ПОПЫТКА ЗАГРУЗКИ АУДИО ЧЕРЕЗ IMGBB (ПРОВЕРЕНО — НЕ РАБОТАЕТ) =================
-   По просьбе была добавлена и проверена возможность грузить голосовые через ImgBB
-   (тот же сервис и тот же ключ, что уже используется для аватарок/картинок в чате).
-
-   ВЫВОД ПРОВЕРКИ: ImgBB — сервис ИСКЛЮЧИТЕЛЬНО для изображений. Их публичный API
-   (https://api.imgbb.com/) на уровне сервера принимает только JPEG, PNG, GIF, BMP,
-   TIFF и WebP — отдельного поля или режима для аудио/видео/произвольных файлов там
-   нет вообще. Поэтому webm/ogg/m4a-запись голосового сообщения ImgBB гарантированно
-   отклонит, независимо от того, как её упаковать в запрос.
-
-   Функция ниже НЕ считает это заранее и не блокирует запрос на клиенте — она реально
-   отправляет файл на ImgBB и разбирает подлинный ответ сервера. Если ImgBB когда-нибудь
-   станет принимать аудио — функция сама вернёт рабочую ссылку. Пока этого не произошло,
-   она бросает понятную ошибку с точным текстом, который вернул сам ImgBB, вместо того
-   чтобы зависнуть или упасть с непонятным исключением.
-
-   ЭТА ФУНКЦИЯ НЕ ИСПОЛЬЗУЕТСЯ для реальной отправки голосовых в чате — она не заменяет
-   uploadVoiceBlobToCatbox() выше. Голосовые по-прежнему грузятся через catbox.moe,
-   потому что это единственный из двух вариантов, который реально работает для аудио. */
-async function uploadAudioToImgBB(blob, ext, timeoutMs) {
-  timeoutMs = timeoutMs || 25000;
-
-  const formData = new FormData();
-  // У ImgBB нет отдельного поля под аудио/файлы — единственное поле, которое
-  // принимает их API, называется "image" (так же, как и для картинок).
-  formData.append('image', blob, `voice_${Date.now()}.${ext}`);
-
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  let resp;
-  try {
-    resp = await fetch(IMGBB_UPLOAD_URL, { method: 'POST', body: formData, signal: controller.signal });
-  } catch (err) {
-    if (err && err.name === 'AbortError') {
-      throw new Error('ImgBB не отвечает дольше ' + Math.round(timeoutMs / 1000) + ' сек. Проверьте интернет-соединение.');
-    }
-    throw new Error('Не удалось связаться с ImgBB (возможно, CORS): ' + (err && err.message ? err.message : err));
-  } finally {
-    clearTimeout(timer);
-  }
-
-  let data = null;
-  let rawText = '';
-  try {
-    rawText = await resp.text();
-    data = JSON.parse(rawText);
-  } catch (e) {
-    // ImgBB ответил не-JSON'ом — тоже считаем отказом, а не "успехом по умолчанию".
-    throw new Error('ImgBB отклонил аудиофайл: сервер вернул нечитаемый ответ (HTTP ' + resp.status + '). ImgBB поддерживает только изображения (JPEG/PNG/GIF/BMP/TIFF/WebP), аудио этот сервис не принимает.');
-  }
-
-  const ok = resp.ok && data && data.success === true && data.data && data.data.url;
-  if (!ok) {
-    const serverMsg = (data && data.error && data.error.message) ? data.error.message : ('HTTP ' + resp.status + (rawText ? (': ' + rawText.slice(0, 200)) : ''));
-    throw new Error(
-      'ImgBB не принимает аудио (ответ сервера: "' + serverMsg + '"). ' +
-      'ImgBB — сервис только для изображений, загрузка voice-сообщений через него невозможна. ' +
-      'Используйте catbox.moe (uploadVoiceBlobToCatbox) — он уже подключён и работает.'
-    );
-  }
-
-  return data.data.url;
-}
-
-/* Ручная проверка прямо в браузере (не в этой песочнице — там нет доступа в сеть).
-   Откройте консоль разработчика в реальном Lunox и выполните:
-     testImgBBAudioSupport()
-   Функция создаёт крошечный тестовый "аудио"-Blob и пытается его загрузить.
-   Ожидаемый результат — понятная ошибка с текстом от ImgBB, подтверждающая,
-   что сервис отклоняет не-изображения. Если вместо ошибки в консоли появится
-   ссылка на файл — значит ImgBB неожиданно стал принимать аудио, и тогда
-   можно рассмотреть переход с catbox.moe на ImgBB для голосовых. */
-async function testImgBBAudioSupport() {
-  const fakeAudioBlob = new Blob([new Uint8Array(1024).fill(0)], { type: 'audio/webm' });
-  console.log('[Lunox] Проверяю, принимает ли ImgBB аудио…');
-  try {
-    const url = await uploadAudioToImgBB(fakeAudioBlob, 'webm', 15000);
-    console.log('[Lunox] НЕОЖИДАННО: ImgBB принял аудио и вернул ссылку:', url);
-    return { supported: true, url };
-  } catch (err) {
-    console.warn('[Lunox] Подтверждено: ImgBB отклонил аудио. Причина:', err.message);
-    return { supported: false, error: err.message };
-  }
-}
-
 // Обёртка "промис или таймаут" для шагов, которые сами по себе не дают прогресс-события
 // (getDownloadURL, запись в Firestore) — чтобы ни один шаг отправки не мог зависнуть
 // молча дольше разумного времени.
@@ -16338,7 +16338,7 @@ async function processVoiceSendQueue() {
     await withTimeout(
       db.collection('chats').doc(currentChatId).collection('messages').add({
         voiceFileId: fileId, voiceDuration: next.durationSec,
-        senderId: currentUser.uid, senderEmail: currentUser.email, senderName: currentUserData.name || 'Пользователь',
+        senderId: currentUser.uid, senderName: currentUserData.name || 'Пользователь',
         createdAt: firebase.firestore.FieldValue.serverTimestamp(), readBy: [currentUser.uid]
       }),
       15000,
@@ -16587,7 +16587,7 @@ async function processVideoCircleSendQueue() {
     await withTimeout(
       db.collection('chats').doc(currentChatId).collection('messages').add({
         videoCircleFileId: fileId, videoCircleDuration: next.durationSec,
-        senderId: currentUser.uid, senderEmail: currentUser.email, senderName: currentUserData.name || 'Пользователь',
+        senderId: currentUser.uid, senderName: currentUserData.name || 'Пользователь',
         createdAt: firebase.firestore.FieldValue.serverTimestamp(), readBy: [currentUser.uid]
       }),
       15000,
@@ -16759,7 +16759,7 @@ function sendLocationMessage() {
     try {
       await db.collection('chats').doc(currentChatId).collection('messages').add({
         location: { lat: pos.coords.latitude, lng: pos.coords.longitude },
-        senderId: currentUser.uid, senderEmail: currentUser.email, senderName: currentUserData.name || 'Пользователь',
+        senderId: currentUser.uid, senderName: currentUserData.name || 'Пользователь',
         createdAt: firebase.firestore.FieldValue.serverTimestamp(), readBy: [currentUser.uid]
       });
       await bumpChatAfterSend('Геопозиция');
@@ -16784,7 +16784,7 @@ function openContactPicker() {
       try {
         await db.collection('chats').doc(currentChatId).collection('messages').add({
           contact: { name: name, phone: phone },
-          senderId: currentUser.uid, senderEmail: currentUser.email, senderName: currentUserData.name || 'Пользователь',
+          senderId: currentUser.uid, senderName: currentUserData.name || 'Пользователь',
           createdAt: firebase.firestore.FieldValue.serverTimestamp(), readBy: [currentUser.uid]
         });
         await bumpChatAfterSend('Контакт: ' + name);
@@ -16881,7 +16881,7 @@ function openForwardPicker(msg) {
     .filter(c => !(c.hiddenFor || []).includes(currentUser.uid))
     .map(c => {
       const name = chatDisplayName(c);
-      return `<div class="pick-row" data-forward-chat="${c.id}">
+      return `<div class="pick-row" data-forward-chat="${escapeHtml(c.id)}">
         <div class="avatar" style="width:34px;height:34px;font-size:13px;">${c.isGroup ? renderGroupAvatarInner(c.groupAvatarUrl, c.groupName) : renderAvatarInner((allUsersMap[(c.members||[]).find(id=>id!==currentUser.uid)]||{}).avatarUrl, name)}</div>
         <div style="flex:1;">${c.isGroup ? '<span class="chat-item-group-ic">' + ICONS_JS.users + '</span> ' : ''}${escapeHtml(name)}</div>
       </div>`;
@@ -16894,7 +16894,7 @@ function openForwardPicker(msg) {
       closeModal();
       try {
         const payload = {
-          senderId: currentUser.uid, senderEmail: currentUser.email, senderName: currentUserData.name || 'Пользователь',
+          senderId: currentUser.uid, senderName: currentUserData.name || 'Пользователь',
           createdAt: firebase.firestore.FieldValue.serverTimestamp(), readBy: [currentUser.uid],
           forwardedFrom: { senderName: msg.senderId === currentUser.uid ? (currentUserData.name || 'Вы') : (msg.senderName || 'Пользователь') }
         };
@@ -16956,7 +16956,7 @@ function exitSelectMode() {
 }
 
 function toggleMessageSelect(msgId) {
-  const rowEl = document.querySelector(`.msg-row[data-msg-id="${msgId}"]`);
+  const rowEl = document.querySelector(`.msg-row[data-msg-id="${CSS.escape(String(msgId))}"]`);
   if (selectedMessageIds.has(msgId)) {
     selectedMessageIds.delete(msgId);
     if (rowEl) {
@@ -17003,7 +17003,7 @@ function openForwardPickerMulti(msgIds) {
     .filter(c => !(c.hiddenFor || []).includes(currentUser.uid))
     .map(c => {
       const name = chatDisplayName(c);
-      return `<div class="pick-row" data-forward-chat="${c.id}">
+      return `<div class="pick-row" data-forward-chat="${escapeHtml(c.id)}">
         <div class="avatar" style="width:34px;height:34px;font-size:13px;">${c.isGroup ? renderGroupAvatarInner(c.groupAvatarUrl, c.groupName) : renderAvatarInner((allUsersMap[(c.members||[]).find(id=>id!==currentUser.uid)]||{}).avatarUrl, name)}</div>
         <div style="flex:1;">${c.isGroup ? '<span class="chat-item-group-ic">' + ICONS_JS.users + '</span> ' : ''}${escapeHtml(name)}</div>
       </div>`;
@@ -17021,7 +17021,7 @@ function openForwardPickerMulti(msgIds) {
         let lastPreview = 'вложение';
         msgs.forEach(msg => {
           const payload = {
-            senderId: currentUser.uid, senderEmail: currentUser.email, senderName: currentUserData.name || 'Пользователь',
+            senderId: currentUser.uid, senderName: currentUserData.name || 'Пользователь',
             createdAt: firebase.firestore.FieldValue.serverTimestamp(), readBy: [currentUser.uid],
             forwardedFrom: { senderName: msg.senderId === currentUser.uid ? (currentUserData.name || 'Вы') : (msg.senderName || 'Пользователь') }
           };
