@@ -20,24 +20,78 @@ function corsHeaders(origin) {
 const json = (obj, status, CORS) =>
   new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json; charset=utf-8', ...CORS } });
 
-// Проверка Firebase idToken (как в lunox-alert): клиент шлёт Authorization: Bearer <idToken>,
-// Worker сверяет его через Firebase Auth REST API (accounts:lookup). FIREBASE_API_KEY — опц. переменная.
-const FIREBASE_API_KEY_DEFAULT = 'AIzaSyCQL-Jk4WHAoECmdz0povAcZilOvvtQPR4';
-async function verifyIdToken(request, env) {
-  const m = /^Bearer\s+(.+)$/i.exec(request.headers.get('Authorization') || '');
-  if (!m) return null;
+// Проверка Firebase idToken ЛОКАЛЬНО (RS256 по публичным сертификатам Google), как в lunox-upload.
+// Раньше проверка шла через identitytoolkit accounts:lookup с Web API key: если ключ ограничен по HTTP-referrer/API
+// (или лимитирован), Google отвечает 403 на запрос из Worker'а (у него нет Referer) -> Worker считал токен невалидным.
+// Локальная проверка от ключа не зависит и не делает лишний сетевой запрос на каждый вызов.
+const FIREBASE_PROJECT_ID = 'lunoh-5453a';
+const GOOGLE_CERTS_URL = 'https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com';
+let _certMem = null;
+async function getGoogleCerts(force) {
+  const now = Date.now();
+  if (!force && _certMem && _certMem.exp > now) return _certMem.certs;
+  const r = await fetch(GOOGLE_CERTS_URL);
+  if (!r.ok) throw new Error('certs_http_' + r.status);
+  const certs = await r.json();
+  const m = /max-age=(\d+)/.exec(r.headers.get('Cache-Control') || '');
+  _certMem = { certs, exp: now + Math.min(m ? +m[1] : 3600, 21600) * 1000 };
+  return certs;
+}
+function b64uBytes(s) {
+  const b = s.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(s.length / 4) * 4, '=');
+  const bin = atob(b); const a = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i);
+  return a;
+}
+function b64uJson(s) { return JSON.parse(new TextDecoder().decode(b64uBytes(s))); }
+function spkiFromCert(der) {
+  let pos = 0;
+  const readLen = () => { let l = der[pos++]; if (l & 0x80) { const n = l & 0x7f; l = 0; for (let i = 0; i < n; i++) l = (l << 8) | der[pos++]; } return l; };
+  const skip = () => { pos++; const l = readLen(); pos += l; }; // NB: не `pos += readLen()` — левая часть читается ДО вызова
+  if (der[pos++] !== 0x30) throw new Error('cert'); readLen();
+  if (der[pos++] !== 0x30) throw new Error('tbs'); readLen();
+  if (der[pos] === 0xa0) skip();
+  skip(); skip(); skip(); skip(); skip(); // serial, sigAlg, issuer, validity, subject
+  const start = pos;
+  if (der[pos++] !== 0x30) throw new Error('spki');
+  const len = readLen();
+  return der.slice(start, pos + len);
+}
+async function certToKey(pem) {
+  const b64 = pem.replace(/-----(BEGIN|END) CERTIFICATE-----/g, '').replace(/\s+/g, '');
+  const bin = atob(b64); const der = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) der[i] = bin.charCodeAt(i);
+  return crypto.subtle.importKey('spki', spkiFromCert(der), { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['verify']);
+}
+// -> { ok: true, uid, email } | { ok: false, reason }
+async function verifyToken(idToken) {
   try {
-    const key = env.FIREBASE_API_KEY || FIREBASE_API_KEY_DEFAULT;
-    const r = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=' + encodeURIComponent(key), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ idToken: m[1].trim() })
-    });
-    if (!r.ok) return null;
-    const data = await r.json();
-    const u = data && data.users && data.users[0];
-    return u && !u.disabled ? { uid: u.localId, email: u.email || '' } : null;
-  } catch (e) { return null; }
+    const parts = String(idToken || '').split('.');
+    if (parts.length !== 3) return { ok: false, reason: 'bad_format' };
+    const header = b64uJson(parts[0]), p = b64uJson(parts[1]);
+    if (header.alg !== 'RS256' || !header.kid) return { ok: false, reason: 'bad_header' };
+    const now = Math.floor(Date.now() / 1000);
+    if (typeof p.exp !== 'number' || p.exp <= now) return { ok: false, reason: 'expired' };
+    if (typeof p.iat !== 'number' || p.iat > now + 300) return { ok: false, reason: 'bad_iat' };
+    if (p.aud !== FIREBASE_PROJECT_ID) return { ok: false, reason: 'bad_aud' };
+    if (p.iss !== 'https://securetoken.google.com/' + FIREBASE_PROJECT_ID) return { ok: false, reason: 'bad_iss' };
+    if (!p.sub || typeof p.sub !== 'string') return { ok: false, reason: 'no_sub' };
+    let certs = await getGoogleCerts(false);
+    if (!certs[header.kid]) certs = await getGoogleCerts(true);
+    if (!certs[header.kid]) return { ok: false, reason: 'unknown_kid' };
+    const key = await certToKey(certs[header.kid]);
+    const okSig = await crypto.subtle.verify({ name: 'RSASSA-PKCS1-v1_5' }, key, b64uBytes(parts[2]), new TextEncoder().encode(parts[0] + '.' + parts[1]));
+    if (!okSig) return { ok: false, reason: 'bad_signature' };
+    return { ok: true, uid: p.sub, email: p.email || '' };
+  } catch (e) {
+    console.error('verifyToken error:', e && e.message);
+    return { ok: false, reason: 'verify_error' };
+  }
+}
+async function verifyIdToken(request) {
+  const m = /^Bearer\s+(.+)$/i.exec(request.headers.get('Authorization') || '');
+  if (!m) return { ok: false, reason: 'no_token' };
+  return verifyToken(m[1].trim());
 }
 
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
@@ -145,8 +199,8 @@ export default {
     if (!ALLOWED_ORIGINS.includes(origin)) return json({ error: 'Forbidden origin' }, 403, CORS);
     if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405, CORS);
 
-    const authUser = await verifyIdToken(request, env);
-    if (!authUser) return json({ error: 'Требуется вход в аккаунт (токен отсутствует или недействителен)' }, 401, CORS);
+    const authUser = await verifyIdToken(request);
+    if (!authUser.ok) return json({ error: 'Требуется вход в аккаунт (' + authUser.reason + ')' }, 401, CORS);
 
     let body;
     try { body = await request.json(); }
