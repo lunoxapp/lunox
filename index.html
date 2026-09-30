@@ -1136,6 +1136,20 @@ button:active,.icon-btn:active,.btn-primary:active,.btn-secondary:active,.action
 @keyframes modalScaleIn{from{opacity:0;transform:scale(0.92)}to{opacity:1;transform:scale(1)}}
 .modal-overlay.center .modal-sheet{animation:modalScaleIn .25s var(--ease,cubic-bezier(.16,1,.3,1))}
 .acc-switcher-panel,.ai-model-dropdown,.reaction-picker{transition-timing-function:var(--ease,cubic-bezier(.16,1,.3,1))}
+
+/* ===== step10: меню моделей ИИ поверх сообщений, TG-галочки, облегчение эффектов ===== */
+.ai-model-bar{z-index:1000}
+.ai-model-dropdown{z-index:1000}
+.msg-select-circle svg{stroke-width:3}
+@keyframes selPop{from{transform:scale(.9)}to{transform:scale(1)}}
+.messages.select-mode .msg-select-circle.checked{animation:selPop .18s var(--ease,cubic-bezier(.16,1,.3,1)) both}
+/* перф: blur на каждом пузыре/элементе списка убивает FPS (Steam Deck, телефоны) — оставляем только на барах и оверлеях */
+:root{--glass-blur:blur(10px) !important}
+.bubble,.chat-item,.settings-row,.shop-card,.ai-history-item,.ai-model-item,.btn-secondary,.shop-tab,.about-v2-section,.admin-stat-card,.ai-attach-preview-bar,.note-item{backdrop-filter:none !important;-webkit-backdrop-filter:none !important}
+.lightbox img{will-change:auto}
+.online-dot{animation:none !important}
+.online-dot::after{animation:none !important;display:none}
+.chat-header .online-dot::after{display:block;animation:onlinePulse 1.8s ease-out infinite !important}
 </style>
 </head>
 <body>
@@ -1701,7 +1715,7 @@ button:active,.icon-btn:active,.btn-primary:active,.btn-secondary:active,.action
             <div class="settings-section-title">Прочее</div>
             <div class="settings-group">
             <div class="settings-row settings-row-fancy" id="row-show-welcome">
-              <div class="settings-row-label"><span class="settings-row-icon"><svg class="tg-ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M21 12.79A9 9 0 1 1 11.21 3"/></svg></span> Приветственный экран</div>
+              <div class="settings-row-label"><span class="settings-row-icon" style="width:36px;height:36px;"><svg class="tg-ic" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;color:var(--violet-bright);"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></span> Приветственный экран</div>
               <div class="settings-row-value"><svg class="tg-ic tg-ic-sm" viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18"/></svg></div>
             </div>
             <div class="settings-row" id="row-invite">
@@ -2086,6 +2100,7 @@ button:active,.icon-btn:active,.btn-primary:active,.btn-secondary:active,.action
       <button class="back-btn" id="select-bar-close" type="button" aria-label="Отмена"><svg class="tg-ic" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
       <div class="chat-header-texts"><div class="chat-header-name" id="select-bar-count">Выбрано 0</div></div>
       <div class="chat-header-actions">
+        <button class="icon-btn" id="select-bar-reply" title="Ответить" style="display:none"><svg class="tg-ic" viewBox="0 0 24 24"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg></button>
         <button class="icon-btn" id="select-bar-copy" title="Копировать"><svg class="tg-ic" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
         <button class="icon-btn" id="select-bar-forward" title="Переслать"><svg class="tg-ic" viewBox="0 0 24 24"><polyline points="15 17 20 12 15 7"/><path d="M4 18v-2a4 4 0 0 1 4-4h12"/></svg></button>
         <button class="icon-btn danger" id="select-bar-delete" title="Удалить"><svg class="tg-ic" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
@@ -9190,6 +9205,7 @@ function openAvatarPickerModal() {
     <div class="action-row" id="av-opt-upload"><span class="action-icon">${ICONS_JS.image}</span> Загрузить своё фото</div>
     <div class="action-row" id="av-opt-gif"><span class="action-icon">${ICONS_JS_GIF_BADGE}</span> Загрузить GIF</div>
     <div class="action-row" id="av-opt-preset"><span class="action-icon">${ICONS_JS.moon}</span> Выбрать из галереи</div>
+    <div class="action-row" id="av-opt-shop"><span class="action-icon" style="color:var(--violet-bright);"><svg class="tg-ic" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span> Выбрать из магазина</div>
     <div class="action-row" id="av-opt-generate"><span class="action-icon"><svg class="tg-ic" viewBox="0 0 24 24"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg></span> Сгенерировать случайный</div>
     <div class="action-row" id="av-opt-frame"><span class="action-icon" style="color:var(--violet-bright);">${ICONS_JS.frame}</span> Сменить рамку</div>
     <div class="action-row danger" id="av-opt-remove"><span class="action-icon" style="color:var(--danger);">${ICONS_JS.trash}</span> Удалить аватар</div>
@@ -9203,12 +9219,57 @@ function openAvatarPickerModal() {
     document.getElementById('input-avatar-gif-file').click();
   });
   document.getElementById('av-opt-preset').addEventListener('click', openAvatarPresetGallery);
+  document.getElementById('av-opt-shop').addEventListener('click', openShopAvatarPicker);
   document.getElementById('av-opt-generate').addEventListener('click', async () => {
     closeModal();
     await saveGeneratedAvatar(randomAvatarSeed());
   });
   document.getElementById('av-opt-frame').addEventListener('click', openFrameChangeModal);
   document.getElementById('av-opt-remove').addEventListener('click', removeMyAvatar);
+}
+
+// Купленные в магазине аватарки (ownedAvatars): url берём из shop_content, а если предмет скрыт/удалён — из ownedMeta.
+function openShopAvatarPicker() {
+  if (typeof startShopContentListener === 'function') { try { startShopContentListener(); } catch (e) {} }
+  const d = currentUserData || {};
+  const ids = Array.isArray(d.ownedAvatars) ? d.ownedAvatars : [];
+  const meta = d.ownedMeta || {};
+  const items = [];
+  ids.forEach((id) => {
+    const sc = shopContent.find((x) => x.id === id);
+    const url = scSafeUrl((sc && sc.url) || (meta[id] && meta[id].url) || '');
+    if (!url) return;
+    items.push({ id, url, name: (sc && sc.name) || (meta[id] && meta[id].name) || '' });
+  });
+  if (!items.length) {
+    openModal(`
+      <div class="modal-title">Аватарки из магазина</div>
+      <div style="text-align:center;color:var(--text-dim);font-size:13px;padding:10px 4px 4px;">У вас пока нет купленных аватарок.</div>
+      ${canOpenShop() ? '<button class="shop-btn" id="av-shop-to-shop" style="width:100%;margin-top:14px;">В магазин</button>' : ''}
+    `, { center: true });
+    const toShop = document.getElementById('av-shop-to-shop');
+    if (toShop) toShop.addEventListener('click', () => { closeModal(); openShopPage(); });
+    return;
+  }
+  const cur = d.avatarUrl || '';
+  const tiles = items.map((it, i) => `
+    <div class="picker-tile${cur && scSafeUrl(cur) === it.url ? ' active' : ''}" data-shop-av="${i}" title="${escapeHtml(it.name)}">
+      <img src="${it.url}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover;">
+      <div class="picker-tile-check">${ICONS_JS.checkSingle}</div>
+    </div>`).join('');
+  openModal(`<div class="modal-title">Аватарки из магазина</div><div class="picker-grid">${tiles}</div>`);
+  modalSheetEl.querySelectorAll('[data-shop-av]').forEach((tile) => {
+    tile.addEventListener('click', async () => {
+      const it = items[parseInt(tile.dataset.shopAv, 10)];
+      if (!it || !currentUser) return;
+      closeModal();
+      try {
+        await db.collection('users').doc(currentUser.uid).set({ avatarUrl: it.url }, { merge: true });
+        await loadMyProfileUI();
+        showLunoxToast('Аватар обновлён');
+      } catch (err) { showLunoxToast('Не удалось: ' + (err.message || err)); }
+    });
+  });
 }
 
 async function removeMyAvatar() {
@@ -13593,29 +13654,58 @@ function renderChatsList() {
         </div>
       </div>
     `;
-    item.addEventListener('click', () => openChat(chat.id, otherUid, nickname, isGroup));
-    item.addEventListener('contextmenu', (e) => { e.preventDefault(); openChatItemMenu(chat); });
-    let pressTimer = null;
-    item.addEventListener('touchstart', () => { pressTimer = setTimeout(() => openChatItemMenu(chat), 480); });
-    item.addEventListener('touchend', () => clearTimeout(pressTimer));
-
-    const pinToggleEl = item.querySelector('[data-pin-toggle]');
-    if (pinToggleEl) {
-      pinToggleEl.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        pinToggleEl.classList.toggle('active');
-        try {
-          const op = pinned ? firebase.firestore.FieldValue.arrayRemove(currentUser.uid) : firebase.firestore.FieldValue.arrayUnion(currentUser.uid);
-          await db.collection('chats').doc(chat.id).set({ pinnedBy: op }, { merge: true });
-        } catch (err) { pinToggleEl.classList.toggle('active'); alert('Не удалось закрепить чат: ' + err.message); }
-      });
-    }
-
+    item.dataset.chatId = chat.id;   // обработчики — делегированные, см. initChatListDelegation()
     listEl.appendChild(item);
   });
 
   updateChatsSearchNoteAfterRender(visible.length, searchQuery);
 }
+
+// Один набор обработчиков на весь список чатов (раньше — 4-5 слушателей на каждую строку при каждом рендере).
+(function initChatListDelegation() {
+  const listEl = document.getElementById('chat-list-chats');
+  if (!listEl) return;
+  const chatOf = (e) => {
+    const item = e.target.closest && e.target.closest('.chat-item');
+    if (!item || !item.dataset.chatId) return null;
+    return chatsCache.find(c => c.id === item.dataset.chatId) || null;
+  };
+  listEl.addEventListener('click', async (e) => {
+    const chat = chatOf(e);
+    if (!chat) return;
+    const pinEl = e.target.closest('[data-pin-toggle]');
+    if (pinEl) {
+      e.stopPropagation();
+      const pinned = (chat.pinnedBy || []).includes(currentUser.uid);
+      pinEl.classList.toggle('active');
+      try {
+        const op = pinned ? firebase.firestore.FieldValue.arrayRemove(currentUser.uid) : firebase.firestore.FieldValue.arrayUnion(currentUser.uid);
+        await db.collection('chats').doc(chat.id).set({ pinnedBy: op }, { merge: true });
+      } catch (err) { pinEl.classList.toggle('active'); alert('Не удалось закрепить чат: ' + err.message); }
+      return;
+    }
+    const isGroup = !!chat.isGroup;
+    const otherUid = isGroup ? null : (chat.members || []).find((id) => id !== currentUser.uid);
+    openChat(chat.id, otherUid, chatDisplayName(chat), isGroup);
+  });
+  listEl.addEventListener('contextmenu', (e) => {
+    const chat = chatOf(e);
+    if (!chat) return;
+    e.preventDefault();
+    openChatItemMenu(chat);
+  });
+  let pressTimer = null;
+  const cancelPress = () => { clearTimeout(pressTimer); pressTimer = null; };
+  listEl.addEventListener('touchstart', (e) => {
+    const chat = chatOf(e);
+    if (!chat) return;
+    cancelPress();
+    pressTimer = setTimeout(() => { pressTimer = null; openChatItemMenu(chat); }, 480);
+  }, { passive: true });
+  listEl.addEventListener('touchend', cancelPress, { passive: true });
+  listEl.addEventListener('touchmove', cancelPress, { passive: true });   // скролл больше не открывает меню
+  listEl.addEventListener('touchcancel', cancelPress, { passive: true });
+})();
 
 function openChatItemMenu(chat) {
   const pinned = (chat.pinnedBy || []).includes(currentUser.uid);
@@ -14857,13 +14947,6 @@ function buildMessageRow(msg, isMine, isNew) {
   selectCircle.innerHTML = ICONS_JS.checkSingle;
   row.appendChild(selectCircle);
 
-  row.addEventListener('click', (e) => {
-    if (!selectModeActive) return;
-    e.preventDefault();
-    e.stopPropagation();
-    toggleMessageSelect(msg.id);
-  }, true);
-
   const col = document.createElement('div');
   col.className = 'bubble-col';
 
@@ -15024,18 +15107,47 @@ function buildMessageRow(msg, isMine, isNew) {
   return row;
 }
 
-function listenToMessages(chatId) {
+// Раньше слушались ВСЕ сообщения чата — на длинной переписке DOM раздувался и всё лагало.
+// Теперь держим окно из последних MSG_PAGE_SIZE, старые подгружаются при прокрутке вверх.
+const MSG_PAGE_SIZE = 120;
+let msgWindowLimit = MSG_PAGE_SIZE, msgHasOlder = false, msgLoadingOlder = false, msgOlderAnchor = null;
+function loadOlderMessages() {
+  if (!currentChatId || !msgHasOlder || msgLoadingOlder) return;
+  const el = document.getElementById('messages');
+  msgLoadingOlder = true;
+  msgOlderAnchor = { h: el.scrollHeight, t: el.scrollTop };
+  msgWindowLimit += MSG_PAGE_SIZE;
+  listenToMessages(currentChatId, { older: true });
+}
+(function () {
+  const el = document.getElementById('messages');
+  let raf = 0;
+  el.addEventListener('scroll', () => {
+    if (raf) return;
+    raf = requestAnimationFrame(() => { raf = 0; if (el.scrollTop < 300) loadOlderMessages(); });
+  }, { passive: true });
+})();
+
+function listenToMessages(chatId, opts) {
+  const older = !!(opts && opts.older);
   if (unsubscribeMessages) unsubscribeMessages();
   const messagesEl = document.getElementById('messages');
-  messagesEl.innerHTML = '';
-  renderedMsgEls = {};
-  delete chatMessagesSearchCache[chatId];
+  if (!older) {
+    messagesEl.innerHTML = '';
+    renderedMsgEls = {};
+    delete chatMessagesSearchCache[chatId];
+    msgWindowLimit = MSG_PAGE_SIZE; msgHasOlder = false; msgLoadingOlder = false; msgOlderAnchor = null;
+  }
+  let olderFirst = older;
 
   unsubscribeMessages = db.collection('chats').doc(chatId)
     .collection('messages')
     .orderBy('createdAt', 'asc')
+    .limitToLast(msgWindowLimit)
     .onSnapshot((snapshot) => {
-      const isFirstLoad = lastRenderedMsgIds.size === 0;
+      const olderMode = olderFirst; olderFirst = false;
+      const isFirstLoad = lastRenderedMsgIds.size === 0 || olderMode;
+      msgHasOlder = snapshot.size >= msgWindowLimit;
       const newIds = new Set();
       messagesCache = [];
       const toMarkRead = [];
@@ -15081,6 +15193,7 @@ function listenToMessages(chatId) {
           if (cached) { cached.el.replaceWith(el); }
           else {
             if (prevEl && prevEl.nextSibling) messagesEl.insertBefore(el, prevEl.nextSibling);
+            else if (!prevEl && messagesEl.firstChild) messagesEl.insertBefore(el, messagesEl.firstChild);   // старые — в начало
             else messagesEl.appendChild(el);
             appendedAtBottom = true;
           }
@@ -15094,7 +15207,10 @@ function listenToMessages(chatId) {
       });
 
       lastRenderedMsgIds = newIds;
-      if (isFirstLoad || (appendedAtBottom && wasNearBottom)) {
+      if (olderMode) {
+        if (msgOlderAnchor) { messagesEl.scrollTop = messagesEl.scrollHeight - msgOlderAnchor.h + msgOlderAnchor.t; msgOlderAnchor = null; }
+        msgLoadingOlder = false;
+      } else if (isFirstLoad || (appendedAtBottom && wasNearBottom)) {
         messagesEl.scrollTop = messagesEl.scrollHeight;
       }
 
@@ -16983,9 +17099,10 @@ function updateSelectBarUI() {
   const selectedMsgs = messagesCache.filter(m => selectedMessageIds.has(m.id));
   const copyBtn = document.getElementById('select-bar-copy');
   if (copyBtn) copyBtn.disabled = !selectedMsgs.some(m => m.text);
-  const anyMine = selectedMsgs.some(m => m.senderId === currentUser.uid);
   const deleteBtn = document.getElementById('select-bar-delete');
-  if (deleteBtn) deleteBtn.disabled = !anyMine;
+  if (deleteBtn) deleteBtn.disabled = !selectedMsgs.length;   // «у себя» можно удалить любые сообщения
+  const replyBtn = document.getElementById('select-bar-reply');
+  if (replyBtn) replyBtn.style.display = (n === 1) ? '' : 'none';   // как в TG: ответ — только на одно сообщение
 }
 
 async function selectBarCopyText() {
@@ -17016,10 +17133,9 @@ function openForwardPickerMulti(msgIds) {
       closeModal();
       try {
         const targetChat = chatsCache.find(c => c.id === targetChatId);
-        const batch = db.batch();
         const msgsCollection = db.collection('chats').doc(targetChatId).collection('messages');
         let lastPreview = 'вложение';
-        msgs.forEach(msg => {
+        for (const msg of msgs) {
           const payload = {
             senderId: currentUser.uid, senderName: currentUserData.name || 'Пользователь',
             createdAt: firebase.firestore.FieldValue.serverTimestamp(), readBy: [currentUser.uid],
@@ -17034,9 +17150,8 @@ function openForwardPickerMulti(msgIds) {
           if (msg.videoCircleFileId) { payload.videoCircleFileId = msg.videoCircleFileId; payload.videoCircleDuration = msg.videoCircleDuration; }
           if (msg.location) payload.location = msg.location;
           if (msg.contact) payload.contact = msg.contact;
-          batch.set(msgsCollection.doc(), payload);
-        });
-        await batch.commit();
+          await msgsCollection.add(payload);   // по одному: в batch serverTimestamp одинаков → порядок терялся
+        }
         const unreadUpdates = {};
         (targetChat.members || []).forEach(uid => { if (uid !== currentUser.uid) unreadUpdates['unread.' + uid] = firebase.firestore.FieldValue.increment(msgs.length); });
         await db.collection('chats').doc(targetChatId).set({
@@ -17086,7 +17201,26 @@ function openSelectDeleteChoice() {
 }
 
 document.getElementById('select-bar-close').addEventListener('click', () => exitSelectMode());
+document.getElementById('select-bar-reply').addEventListener('click', () => {
+  const id = Array.from(selectedMessageIds)[0];
+  const msg = messagesCache.find(m => m.id === id);
+  if (!msg || selectedMessageIds.size !== 1) return;
+  replyToMessage = { id: msg.id, text: msg.text || (msg.imageUrl ? 'Фото' : msg.gifUrl ? 'GIF' : msg.stickerUrl ? 'Стикер' : msg.fileUrl ? 'Файл' : msg.voiceFileId ? 'Голосовое сообщение' : msg.videoCircleFileId ? 'Видеокружок' : msg.location ? 'Геопозиция' : 'Контакт'), senderName: msg.senderId === currentUser.uid ? 'Вы' : (msg.senderName || 'Собеседник') };
+  editingMessageId = null;
+  updateReplyPreviewUI();
+  document.getElementById('input-message').focus();
+  exitSelectMode();
+});
 document.getElementById('select-bar-copy').addEventListener('click', () => selectBarCopyText());
+// Делегирование: один обработчик на список вместо слушателя на каждой строке сообщений
+document.getElementById('messages').addEventListener('click', (e) => {
+  if (!selectModeActive) return;
+  const row = e.target.closest && e.target.closest('.msg-row');
+  if (!row || !row.dataset.msgId) return;
+  e.preventDefault();
+  e.stopPropagation();
+  toggleMessageSelect(row.dataset.msgId);
+}, true);
 document.getElementById('select-bar-forward').addEventListener('click', () => openForwardPickerMulti(new Set(selectedMessageIds)));
 document.getElementById('select-bar-delete').addEventListener('click', () => openSelectDeleteChoice());
 
@@ -17128,13 +17262,22 @@ if ('serviceWorker' in navigator) {
   });
   const shop = document.querySelector('.shop-page-overlay');
   if (shop) new MutationObserver(() => { if (shop.classList.contains('active')) ['shop-avatars-grid', 'shop-frames-grid', 'shop-gifts-grid'].forEach((k) => delete seen[k]); }).observe(shop, { attributes: true, attributeFilter: ['class'] });
+  // rAF-троттлинг: раньше на КАЖДОЕ scroll-событие любого скроллера шли querySelector + toggle.
+  let scrollRaf = 0, scrollTarget = null;
   document.addEventListener('scroll', (e) => {
     const t = e.target;
     if (!t || !t.classList) return;
-    const bar = document.querySelector('.topbar-lunox');
-    if (bar && (t.classList.contains('chat-list') || t.classList.contains('tab-panel'))) bar.classList.toggle('scrolled', t.scrollTop > 4);
-    if (t.classList.contains('messages')) { const h = document.querySelector('.chat-header'); if (h) h.classList.toggle('scrolled', t.scrollTop > 4); }
-  }, true);
+    scrollTarget = t;
+    if (scrollRaf) return;
+    scrollRaf = requestAnimationFrame(() => {
+      scrollRaf = 0;
+      const t2 = scrollTarget;
+      if (!t2 || !t2.classList) return;
+      const bar = document.querySelector('.topbar-lunox');
+      if (bar && (t2.classList.contains('chat-list') || t2.classList.contains('tab-panel'))) bar.classList.toggle('scrolled', t2.scrollTop > 4);
+      if (t2.classList.contains('messages')) { const h = document.querySelector('.chat-header'); if (h) h.classList.toggle('scrolled', t2.scrollTop > 4); }
+    });
+  }, { capture: true, passive: true });
 })();
 
 /* ================= v23: ЭКРАН НАСТРОЕК (кнопка ☰ справа сверху) =================
