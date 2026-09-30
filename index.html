@@ -1117,9 +1117,9 @@ body.theme-light .msg-actions-menu{background:rgba(255,255,255,0.78)}
 .chat-select-bar .icon-btn.danger{color:var(--danger)}
 .chat-select-bar .icon-btn.danger:hover{background:rgba(248,113,113,0.14);color:var(--danger)}
 .chat-select-bar .icon-btn:disabled{opacity:0.35;cursor:default;pointer-events:none}
-.msg-select-circle{width:0;height:20px;border-radius:50%;border:2px solid rgba(255,255,255,0.4);flex-shrink:0;box-sizing:border-box;margin-right:0;opacity:0;transform:translateX(-10px);overflow:hidden;display:flex;align-items:center;justify-content:center;cursor:pointer;background:transparent;transition:width .2s var(--ease,cubic-bezier(.16,1,.3,1)),margin-right .2s var(--ease,cubic-bezier(.16,1,.3,1)),opacity .2s var(--ease,cubic-bezier(.16,1,.3,1)),transform .2s var(--ease,cubic-bezier(.16,1,.3,1)),background .15s ease,border-color .15s ease}
+.msg-select-circle{width:20px;height:20px;border-radius:50%;border:0 solid rgba(255,255,255,0.4);flex-shrink:0;box-sizing:border-box;margin-right:calc(-20px - var(--msg-gap,8px));opacity:0;transform:scale(.4);pointer-events:none;overflow:hidden;display:flex;align-items:center;justify-content:center;cursor:pointer;background:transparent;transition:margin-right .2s var(--ease,cubic-bezier(.16,1,.3,1)),opacity .2s var(--ease,cubic-bezier(.16,1,.3,1)),transform .2s var(--ease,cubic-bezier(.16,1,.3,1)),border-width .2s var(--ease,cubic-bezier(.16,1,.3,1)),background .15s ease,border-color .15s ease}
 .messages.select-mode .msg-row{justify-content:flex-start !important}
-.messages.select-mode .msg-select-circle{width:20px;margin-right:8px;opacity:1;transform:translateX(0)}
+.messages.select-mode .msg-select-circle{border-width:2px;margin-right:8px;opacity:1;transform:scale(1);pointer-events:auto}
 .msg-select-circle svg{width:12px;height:12px;color:#fff;opacity:0;transform:scale(.4);transition:opacity .15s ease,transform .15s cubic-bezier(.34,1.56,.64,1)}
 .msg-select-circle.checked{background:var(--violet-bright);border-color:var(--violet-bright)}
 .msg-select-circle.checked svg{opacity:1;transform:scale(1)}
@@ -1138,7 +1138,7 @@ button:active,.icon-btn:active,.btn-primary:active,.btn-secondary:active,.action
 .acc-switcher-panel,.ai-model-dropdown,.reaction-picker{transition-timing-function:var(--ease,cubic-bezier(.16,1,.3,1))}
 
 /* ===== step10: меню моделей ИИ поверх сообщений, TG-галочки, облегчение эффектов ===== */
-.ai-model-bar{z-index:1000}
+.ai-model-bar{z-index:70}
 .ai-model-dropdown{z-index:1000}
 .msg-select-circle svg{stroke-width:3}
 @keyframes selPop{from{transform:scale(.9)}to{transform:scale(1)}}
@@ -1148,8 +1148,9 @@ button:active,.icon-btn:active,.btn-primary:active,.btn-secondary:active,.action
 .bubble,.chat-item,.settings-row,.shop-card,.ai-history-item,.ai-model-item,.btn-secondary,.shop-tab,.about-v2-section,.admin-stat-card,.ai-attach-preview-bar,.note-item{backdrop-filter:none !important;-webkit-backdrop-filter:none !important}
 .lightbox img{will-change:auto}
 .online-dot{animation:none !important}
-.online-dot::after{animation:none !important;display:none}
-.chat-header .online-dot::after{display:block;animation:onlinePulse 1.8s ease-out infinite !important}
+.online-dot::after{animation:none;display:none}
+.chat-header .online-dot::after{display:block;animation:onlinePulse 1.8s ease-out infinite}
+@media (prefers-reduced-motion:reduce){.chat-header .online-dot::after{animation:none;display:none}}
 </style>
 </head>
 <body>
@@ -9229,11 +9230,18 @@ function openAvatarPickerModal() {
 }
 
 // Купленные в магазине аватарки (ownedAvatars): url берём из shop_content, а если предмет скрыт/удалён — из ownedMeta.
-function openShopAvatarPicker() {
+async function openShopAvatarPicker() {
   if (typeof startShopContentListener === 'function') { try { startShopContentListener(); } catch (e) {} }
   const d = currentUserData || {};
   const ids = Array.isArray(d.ownedAvatars) ? d.ownedAvatars : [];
   const meta = d.ownedMeta || {};
+  // Каталог shop_content подписывается только при открытии магазина — если пуст, подгружаем разово.
+  if (!shopContent.length && ids.length) {
+    try {
+      const snap = await db.collection('shop_content').get();
+      shopContent = snap.docs.map((x) => Object.assign({ id: x.id }, x.data())).filter((x) => SC_TYPES[x.type]);
+    } catch (e) { console.warn('[Lunox] shop_content не загружен:', e && e.message); }
+  }
   const items = [];
   ids.forEach((id) => {
     const sc = shopContent.find((x) => x.id === id);
@@ -15145,8 +15153,10 @@ function listenToMessages(chatId, opts) {
     .orderBy('createdAt', 'asc')
     .limitToLast(msgWindowLimit)
     .onSnapshot((snapshot) => {
-      const olderMode = olderFirst; olderFirst = false;
+      const olderMode = olderFirst;
+      if (olderFirst && !snapshot.metadata.fromCache) olderFirst = false;   // кэш-снимок приходит раньше серверного: режим держим до ответа сервера
       const isFirstLoad = lastRenderedMsgIds.size === 0 || olderMode;
+      const prevH = messagesEl.scrollHeight, prevT = messagesEl.scrollTop;
       msgHasOlder = snapshot.size >= msgWindowLimit;
       const newIds = new Set();
       messagesCache = [];
@@ -15208,8 +15218,9 @@ function listenToMessages(chatId, opts) {
 
       lastRenderedMsgIds = newIds;
       if (olderMode) {
-        if (msgOlderAnchor) { messagesEl.scrollTop = messagesEl.scrollHeight - msgOlderAnchor.h + msgOlderAnchor.t; msgOlderAnchor = null; }
-        msgLoadingOlder = false;
+        messagesEl.scrollTop = messagesEl.scrollHeight - prevH + prevT;
+        msgOlderAnchor = null;
+        if (!olderFirst) msgLoadingOlder = false;
       } else if (isFirstLoad || (appendedAtBottom && wasNearBottom)) {
         messagesEl.scrollTop = messagesEl.scrollHeight;
       }
@@ -16992,7 +17003,12 @@ function openDeleteMessageChoice(msg) {
   });
 }
 
+function msgHasForwardable(m) {
+  return !!m && !m.deletedForEveryone && !!(m.text || m.imageUrl || m.gifUrl || m.stickerUrl || m.fileUrl || m.voiceFileId || m.videoCircleFileId || m.location || m.contact);
+}
+
 function openForwardPicker(msg) {
+  if (!msgHasForwardable(msg)) { showLunoxToast('Нечего пересылать'); return; }
   const rows = chatsCache
     .filter(c => !(c.hiddenFor || []).includes(currentUser.uid))
     .map(c => {
@@ -17101,6 +17117,8 @@ function updateSelectBarUI() {
   if (copyBtn) copyBtn.disabled = !selectedMsgs.some(m => m.text);
   const deleteBtn = document.getElementById('select-bar-delete');
   if (deleteBtn) deleteBtn.disabled = !selectedMsgs.length;   // «у себя» можно удалить любые сообщения
+  const fwdBtn = document.getElementById('select-bar-forward');
+  if (fwdBtn) fwdBtn.disabled = !selectedMsgs.some(msgHasForwardable);   // удалённые/пустые не пересылаем
   const replyBtn = document.getElementById('select-bar-reply');
   if (replyBtn) replyBtn.style.display = (n === 1) ? '' : 'none';   // как в TG: ответ — только на одно сообщение
 }
@@ -17114,8 +17132,8 @@ async function selectBarCopyText() {
 }
 
 function openForwardPickerMulti(msgIds) {
-  const msgs = messagesCache.filter(m => msgIds.has(m.id));
-  if (!msgs.length) return;
+  const msgs = messagesCache.filter(m => msgIds.has(m.id) && msgHasForwardable(m));
+  if (!msgs.length) { showLunoxToast('Нечего пересылать'); return; }
   const rows = chatsCache
     .filter(c => !(c.hiddenFor || []).includes(currentUser.uid))
     .map(c => {
@@ -17171,7 +17189,7 @@ function openSelectDeleteChoice() {
   const selectedMsgs = messagesCache.filter(m => selectedMessageIds.has(m.id));
   if (!selectedMsgs.length) return;
   const allMine = selectedMsgs.every(m => m.senderId === currentUser.uid);
-  let html = `<div class="modal-title">Удалить ${selectedMsgs.length} сообщений?</div>`;
+  let html = `<div class="modal-title">Удалить ${selectedMsgs.length} ${pluralizeRu(selectedMsgs.length, 'сообщение', 'сообщения', 'сообщений')}?</div>`;
   if (allMine) html += `<div class="action-row danger" id="sel-delete-everyone"><span class="action-icon">${ICONS_JS.trash}</span> Удалить у всех</div>`;
   html += `<div class="action-row danger" id="sel-delete-me"><span class="action-icon">${ICONS_JS.eyeOff}</span> Удалить у себя</div>`;
   openModal(html);
