@@ -1,86 +1,515 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lunox — мессенджер нового поколения</title>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: #1a0f2e;
-    color: #fff;
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-  }
-  .container {
-    max-width: 600px;
-    text-align: center;
-    background: rgba(139, 92, 246, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 20px;
-    padding: 60px 40px;
-    backdrop-filter: blur(20px);
-  }
-  .logo {
-    font-size: 64px;
-    color: #a78bfa;
-    margin-bottom: 20px;
-  }
-  h1 {
-    font-size: 42px;
-    margin-bottom: 12px;
-    background: linear-gradient(135deg, #a78bfa, #7c3aed);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-  p {
-    font-size: 18px;
-    color: rgba(255, 255, 255, 0.7);
-    margin-bottom: 40px;
-  }
-  .btn {
-    display: inline-block;
-    padding: 16px 32px;
-    background: linear-gradient(135deg, #7c3aed, #a78bfa);
-    color: #fff;
-    text-decoration: none;
-    border-radius: 14px;
-    font-size: 16px;
-    font-weight: 600;
-    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .btn:active { transform: scale(0.96); }
-  .links {
-    margin-top: 40px;
-    display: flex;
-    gap: 16px;
-    justify-content: center;
-    flex-wrap: wrap;
-  }
-  .links a {
-    color: rgba(255, 255, 255, 0.5);
-    text-decoration: none;
-    font-size: 14px;
-    transition: color 0.2s;
-  }
-  .links a:hover { color: #a78bfa; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lunox — мессенджер нового поколения</title>
+  <meta name="description" content="Lunox — мессенджер нового поколения. Чаты, звонки, ИИ. Без рекламы. Бесплатно.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237c3aed' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="container">
-    <div class="logo">☾</div>
-    <h1>Lunox</h1>
-    <p>Мессенджер нового поколения. Чаты, звонки, ИИ. Без рекламы.</p>
-    <a href="https://lunoxapp.online" class="btn">Открыть Lunox</a>
-    <div class="links">
-      <a href="https://tiktok.com/@lunox.app">TikTok</a>
-      <a href="https://youtube.com/@LunoxApp">YouTube</a>
-      <a href="https://t.me/lunox_channel">Telegram</a>
+
+  <!-- ===================== HEADER ===================== -->
+  <header class="header" id="header">
+    <div class="container header-inner">
+      <a href="#hero" class="brand" aria-label="Lunox — на главную">
+        <span class="brand-mark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </span>
+        <span class="brand-name">Lunox</span>
+      </a>
+
+      <nav class="nav" id="nav" aria-label="Основная навигация">
+        <a href="#features" class="nav-link">Возможности</a>
+        <a href="#screens" class="nav-link">Скриншоты</a>
+        <a href="#faq" class="nav-link">FAQ</a>
+        <a href="#social" class="nav-link">Соцсети</a>
+      </nav>
+
+      <div class="header-actions">
+        <a href="#" class="btn btn-primary btn-sm">
+          Открыть Lunox
+        </a>
+        <button class="burger" id="burger" aria-label="Меню" aria-expanded="false">
+          <svg class="icon-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="7" x2="21" y2="7"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="17" x2="21" y2="17"/></svg>
+          <svg class="icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
     </div>
-  </div>
+  </header>
+
+  <main>
+    <!-- ===================== HERO ===================== -->
+    <section class="hero" id="hero">
+      <div class="hero-glow hero-glow-1" aria-hidden="true"></div>
+      <div class="hero-glow hero-glow-2" aria-hidden="true"></div>
+
+      <div class="container hero-inner">
+        <div class="hero-logo hero-anim-logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </div>
+
+        <h1 class="hero-title hero-anim hero-anim-d1">
+          <span class="gradient-text">Lunox</span> — мессенджер нового&nbsp;поколения
+        </h1>
+
+        <p class="hero-sub hero-anim hero-anim-d2">Чаты, звонки, ИИ. Без рекламы. Бесплатно</p>
+
+        <div class="hero-cta">
+          <a href="#" class="btn btn-primary btn-lg hero-anim hero-anim-d3">
+            Открыть Lunox
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </a>
+          <a href="#" class="btn btn-secondary btn-lg hero-anim hero-anim-d4">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Скачать APK
+          </a>
+        </div>
+
+        <p class="hero-note hero-anim hero-anim-d5">iOS и Android · Без рекламы и встроенных покупок в чатах</p>
+      </div>
+    </section>
+
+    <!-- ===================== FEATURES ===================== -->
+    <section class="section section-alt" id="features">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="eyebrow">Возможности</span>
+          <h2 class="section-title">Всё для общения — в одном приложении</h2>
+          <p class="section-sub">Шесть причин, почему Lunox заменит вам остальные мессенджеры.</p>
+        </div>
+
+        <div class="features-grid">
+          <article class="card reveal" style="--d:0ms">
+            <div class="card-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+            </div>
+            <h3 class="card-title">Чаты и группы</h3>
+            <p class="card-text">Личные переписки и группы до 10 000 человек. Реакции, ответы, закрепы и папки для порядка.</p>
+          </article>
+
+          <article class="card reveal" style="--d:30ms">
+            <div class="card-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            </div>
+            <h3 class="card-title">Звонки</h3>
+            <p class="card-text">Аудио- и видеозвонки в HD-качестве. Стабильная связь даже при слабом интернете.</p>
+          </article>
+
+          <article class="card reveal" style="--d:60ms">
+            <div class="card-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
+            </div>
+            <h3 class="card-title">ИИ-помощник</h3>
+            <p class="card-text">Lunox AI переводит сообщения, отвечает на вопросы и помогает с текстами прямо в чате.</p>
+          </article>
+
+          <article class="card reveal" style="--d:90ms">
+            <div class="card-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+            </div>
+            <h3 class="card-title">Магазин</h3>
+            <p class="card-text">Внутренняя валюта — луны. Рамки для аватаров, темы и оформление профиля на любой вкус.</p>
+          </article>
+
+          <article class="card reveal" style="--d:120ms">
+            <div class="card-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <h3 class="card-title">Приватность</h3>
+            <p class="card-text">Сквозное шифрование личных чатов. Мы не продаём данные и не читаем ваши переписки.</p>
+          </article>
+
+          <article class="card reveal" style="--d:150ms">
+            <div class="card-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+            </div>
+            <h3 class="card-title">Рефералы</h3>
+            <p class="card-text">Приглашайте друзей по личной ссылке и получайте +50 лун за каждого. Лимита нет.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== SCREENS ===================== -->
+    <section class="section" id="screens">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="eyebrow">Скриншоты</span>
+          <h2 class="section-title">Приложение, которое приятно открывать</h2>
+          <p class="section-sub">Чаты, звонки, ИИ и магазин — живой интерфейс Lunox.</p>
+        </div>
+
+        <div class="phones">
+          <!-- Phone 1: Chats -->
+          <div class="phone-wrap reveal" style="--d:0ms">
+            <div class="phone float" style="animation-delay:0s">
+              <div class="phone-screen">
+                <div class="notch" aria-hidden="true"></div>
+                <div class="statusbar">
+                  <span>9:41</span>
+                  <span class="status-icons">
+                    <svg viewBox="0 0 16 12" fill="currentColor"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="4" y="5" width="3" height="7" rx="1"/><rect x="8" y="2.5" width="3" height="9.5" rx="1"/><rect x="12" y="0" width="3" height="12" rx="1"/></svg>
+                    <svg viewBox="0 0 25 12" fill="none" stroke="currentColor"><rect x="0.5" y="0.5" width="21" height="11" rx="3.5"/><rect x="2.5" y="2.5" width="14" height="7" rx="2" fill="currentColor" stroke="none"/><path d="M23.5 4v4" stroke-linecap="round" stroke-width="1.5"/></svg>
+                  </span>
+                </div>
+                <div class="appbar">
+                  <span class="appbar-title">Lunox</span>
+                  <svg class="appbar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                </div>
+                <div class="search-pill">Поиск</div>
+                <div class="chat-list">
+                  <div class="chat-row">
+                    <span class="avatar av-1">А</span>
+                    <span class="chat-meta">
+                      <span class="chat-name">Александра</span>
+                      <span class="chat-preview typing">печатает…</span>
+                    </span>
+                    <span class="chat-side">
+                      <span class="chat-time">12:34</span>
+                    </span>
+                  </div>
+                  <div class="chat-row">
+                    <span class="avatar av-2">Д</span>
+                    <span class="chat-meta">
+                      <span class="chat-name">Дмитрий</span>
+                      <span class="chat-preview">Созвонимся вечером?</span>
+                    </span>
+                    <span class="chat-side">
+                      <span class="chat-time">12:02</span>
+                      <span class="badge">2</span>
+                    </span>
+                  </div>
+                  <div class="chat-row">
+                    <span class="avatar av-3">К</span>
+                    <span class="chat-meta">
+                      <span class="chat-name">Команда Lunox</span>
+                      <span class="chat-preview">Добро пожаловать в Lunox!</span>
+                    </span>
+                    <span class="chat-side">
+                      <span class="chat-time">11:48</span>
+                      <span class="badge">1</span>
+                    </span>
+                  </div>
+                  <div class="chat-row">
+                    <span class="avatar av-4">М</span>
+                    <span class="chat-meta">
+                      <span class="chat-name">Мария</span>
+                      <span class="chat-preview">Голосовое сообщение · 0:42</span>
+                    </span>
+                    <span class="chat-side">
+                      <span class="chat-time">Вчера</span>
+                    </span>
+                  </div>
+                  <div class="chat-row">
+                    <span class="avatar av-5">И</span>
+                    <span class="chat-meta">
+                      <span class="chat-name">Илья</span>
+                      <span class="chat-preview">Отправил тебе ссылку</span>
+                    </span>
+                    <span class="chat-side">
+                      <span class="chat-time">Вчера</span>
+                    </span>
+                  </div>
+                </div>
+                <div class="tabbar">
+                  <svg class="tab active" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                  <svg class="tab" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                  <svg class="tab" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                  <svg class="tab" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                </div>
+              </div>
+            </div>
+            <p class="phone-caption">Чаты и группы</p>
+          </div>
+
+          <!-- Phone 2: Call -->
+          <div class="phone-wrap reveal" style="--d:60ms">
+            <div class="phone float" style="animation-delay:0.6s">
+              <div class="phone-screen screen-call">
+                <div class="notch notch-dark" aria-hidden="true"></div>
+                <div class="statusbar statusbar-light">
+                  <span>9:41</span>
+                  <span class="status-icons">
+                    <svg viewBox="0 0 16 12" fill="currentColor"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="4" y="5" width="3" height="7" rx="1"/><rect x="8" y="2.5" width="3" height="9.5" rx="1"/><rect x="12" y="0" width="3" height="12" rx="1"/></svg>
+                    <svg viewBox="0 0 25 12" fill="none" stroke="currentColor"><rect x="0.5" y="0.5" width="21" height="11" rx="3.5"/><rect x="2.5" y="2.5" width="14" height="7" rx="2" fill="currentColor" stroke="none"/><path d="M23.5 4v4" stroke-linecap="round" stroke-width="1.5"/></svg>
+                  </span>
+                </div>
+                <div class="call-body">
+                  <span class="call-label">Lunox · аудиозвонок</span>
+                  <span class="call-avatar">
+                    <span class="call-ring" aria-hidden="true"></span>
+                    А
+                  </span>
+                  <span class="call-name">Александра</span>
+                  <span class="call-timer">12:34</span>
+                </div>
+                <div class="call-actions">
+                  <span class="call-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+                  </span>
+                  <span class="call-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+                  </span>
+                  <span class="call-btn call-btn-end">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(135deg)"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                  </span>
+                </div>
+              </div>
+            </div>
+            <p class="phone-caption">Звонки</p>
+          </div>
+
+          <!-- Phone 3: AI -->
+          <div class="phone-wrap reveal" style="--d:120ms">
+            <div class="phone float" style="animation-delay:1.2s">
+              <div class="phone-screen">
+                <div class="notch" aria-hidden="true"></div>
+                <div class="statusbar">
+                  <span>9:41</span>
+                  <span class="status-icons">
+                    <svg viewBox="0 0 16 12" fill="currentColor"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="4" y="5" width="3" height="7" rx="1"/><rect x="8" y="2.5" width="3" height="9.5" rx="1"/><rect x="12" y="0" width="3" height="12" rx="1"/></svg>
+                    <svg viewBox="0 0 25 12" fill="none" stroke="currentColor"><rect x="0.5" y="0.5" width="21" height="11" rx="3.5"/><rect x="2.5" y="2.5" width="14" height="7" rx="2" fill="currentColor" stroke="none"/><path d="M23.5 4v4" stroke-linecap="round" stroke-width="1.5"/></svg>
+                  </span>
+                </div>
+                <div class="appbar">
+                  <span class="ai-dot" aria-hidden="true"></span>
+                  <span class="appbar-title">Lunox AI</span>
+                </div>
+                <div class="ai-chat">
+                  <div class="bubble bubble-user">Переведи на английский: «Увидимся завтра вечером»</div>
+                  <div class="bubble bubble-ai">
+                    <span class="bubble-ai-tag">Lunox AI</span>
+                    «See you tomorrow evening»
+                  </div>
+                  <div class="bubble bubble-user">А теперь короче</div>
+                  <div class="bubble bubble-ai bubble-typing" aria-label="Lunox AI печатает">
+                    <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+                  </div>
+                </div>
+                <div class="input-bar">
+                  <span class="input-placeholder">Сообщение</span>
+                  <span class="input-send">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                  </span>
+                </div>
+              </div>
+            </div>
+            <p class="phone-caption">ИИ-помощник</p>
+          </div>
+
+          <!-- Phone 4: Shop -->
+          <div class="phone-wrap reveal" style="--d:180ms">
+            <div class="phone float" style="animation-delay:1.8s">
+              <div class="phone-screen">
+                <div class="notch" aria-hidden="true"></div>
+                <div class="statusbar">
+                  <span>9:41</span>
+                  <span class="status-icons">
+                    <svg viewBox="0 0 16 12" fill="currentColor"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="4" y="5" width="3" height="7" rx="1"/><rect x="8" y="2.5" width="3" height="9.5" rx="1"/><rect x="12" y="0" width="3" height="12" rx="1"/></svg>
+                    <svg viewBox="0 0 25 12" fill="none" stroke="currentColor"><rect x="0.5" y="0.5" width="21" height="11" rx="3.5"/><rect x="2.5" y="2.5" width="14" height="7" rx="2" fill="currentColor" stroke="none"/><path d="M23.5 4v4" stroke-linecap="round" stroke-width="1.5"/></svg>
+                  </span>
+                </div>
+                <div class="appbar">
+                  <span class="appbar-title">Магазин</span>
+                  <span class="balance-pill">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                    1 250
+                  </span>
+                </div>
+                <div class="shop-grid">
+                  <div class="shop-item">
+                    <span class="frame-preview fp-1"></span>
+                    <span class="shop-name">Сияние</span>
+                    <span class="shop-price">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                      300
+                    </span>
+                  </div>
+                  <div class="shop-item">
+                    <span class="frame-preview fp-2"></span>
+                    <span class="shop-name">Неон</span>
+                    <span class="shop-price">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                      500
+                    </span>
+                  </div>
+                  <div class="shop-item">
+                    <span class="frame-preview fp-3"></span>
+                    <span class="shop-name">Аврора</span>
+                    <span class="shop-price">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                      750
+                    </span>
+                  </div>
+                  <div class="shop-item">
+                    <span class="frame-preview fp-4"></span>
+                    <span class="shop-name">Космос</span>
+                    <span class="shop-price">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                      1 000
+                    </span>
+                  </div>
+                </div>
+                <div class="shop-cta">Пополнить луны</div>
+              </div>
+            </div>
+            <p class="phone-caption">Магазин</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== FAQ ===================== -->
+    <section class="section section-alt" id="faq">
+      <div class="container container-narrow">
+        <div class="section-head reveal">
+          <span class="eyebrow">FAQ</span>
+          <h2 class="section-title">Частые вопросы</h2>
+          <p class="section-sub">Коротко о главном.</p>
+        </div>
+
+        <div class="faq-list">
+          <div class="faq-item reveal" style="--d:0ms">
+            <button class="faq-question" aria-expanded="false">
+              Что такое Lunox?
+              <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="faq-answer">
+              <div class="faq-answer-inner">
+                Lunox — мессенджер нового поколения: личные чаты и группы, звонки и встроенный ИИ-помощник в одном приложении. Никакой рекламы — только общение.
+              </div>
+            </div>
+          </div>
+
+          <div class="faq-item reveal" style="--d:30ms">
+            <button class="faq-question" aria-expanded="false">
+              Lunox бесплатный?
+              <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="faq-answer">
+              <div class="faq-answer-inner">
+                Да. Чаты, звонки и ИИ-помощник полностью бесплатны. Дополнительно есть магазин с рамками и оформлением — покупки там идут за луны, внутреннюю валюту, которую можно заработать бесплатно.
+              </div>
+            </div>
+          </div>
+
+          <div class="faq-item reveal" style="--d:60ms">
+            <button class="faq-question" aria-expanded="false">
+              Как заработать луны?
+              <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="faq-answer">
+              <div class="faq-answer-inner">
+                Главный способ — приглашать друзей: +50 лун за каждого, кто зарегистрируется по вашей ссылке. Также луны начисляются за ежедневную активность и участие в событиях внутри приложения.
+              </div>
+            </div>
+          </div>
+
+          <div class="faq-item reveal" style="--d:90ms">
+            <button class="faq-question" aria-expanded="false">
+              В приложении есть реклама?
+              <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="faq-answer">
+              <div class="faq-answer-inner">
+                Нет. В Lunox нет баннеров, встроенной рекламы и продажи пользовательских данных — и не будет.
+              </div>
+            </div>
+          </div>
+
+          <div class="faq-item reveal" style="--d:120ms">
+            <button class="faq-question" aria-expanded="false">
+              Как пригласить друга?
+              <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="faq-answer">
+              <div class="faq-answer-inner">
+                Откройте профиль → «Пригласить друзей» и отправьте личную ссылку любым способом. Как только друг зарегистрируется, вам начислят +50 лун — автоматически и без лимита.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== SOCIAL ===================== -->
+    <section class="section" id="social">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="eyebrow">Соцсети</span>
+          <h2 class="section-title">Мы на связи</h2>
+          <p class="section-sub">Новости, обновления и закулисье Lunox.</p>
+        </div>
+
+        <div class="social-grid">
+          <a href="https://tiktok.com/@lunox.app" target="_blank" rel="noopener" class="social-card reveal" style="--d:0ms">
+            <span class="social-icon social-tiktok">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></svg>
+            </span>
+            <span class="social-meta">
+              <span class="social-name">TikTok</span>
+              <span class="social-handle">@lunox.app</span>
+            </span>
+            <svg class="social-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+          </a>
+
+          <a href="https://youtube.com/@LunoxApp" target="_blank" rel="noopener" class="social-card reveal" style="--d:30ms">
+            <span class="social-icon social-youtube">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"/><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" fill="currentColor" stroke="none"/></svg>
+            </span>
+            <span class="social-meta">
+              <span class="social-name">YouTube</span>
+              <span class="social-handle">@LunoxApp</span>
+            </span>
+            <svg class="social-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+          </a>
+
+          <a href="https://t.me/lunox_channel" target="_blank" rel="noopener" class="social-card reveal" style="--d:60ms">
+            <span class="social-icon social-telegram">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+            </span>
+            <span class="social-meta">
+              <span class="social-name">Telegram</span>
+              <span class="social-handle">t.me/lunox_channel</span>
+            </span>
+            <svg class="social-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===================== FOOTER ===================== -->
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div class="footer-brand">
+        <a href="#hero" class="brand">
+          <span class="brand-mark">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          </span>
+          <span class="brand-name">Lunox</span>
+        </a>
+        <p class="footer-tag">Мессенджер нового поколения</p>
+      </div>
+
+      <nav class="footer-nav" aria-label="Навигация в подвале">
+        <a href="#features">Возможности</a>
+        <a href="#screens">Скриншоты</a>
+        <a href="#faq">FAQ</a>
+        <a href="#social">Соцсети</a>
+      </nav>
+    </div>
+    <div class="container footer-bottom">
+      <span>© 2026 Lunox. Все права защищены.</span>
+      <span>Сделано с любовью к общению</span>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
 </body>
 </html>
