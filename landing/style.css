@@ -28,9 +28,25 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Без синей вспышки при тапе, но с понятным фокусом для клавиатуры */
-:focus:not(:focus-visible) { outline: none; }
-:focus-visible { outline: 2px solid var(--accent-light); outline-offset: 3px; border-radius: 10px; }
+/* Без синей вспышки при тапе (Chrome/Android), без callout (iOS) */
+html { -webkit-tap-highlight-color: transparent; }
+
+a, button {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+
+/* Элементы управления не выделяются синим при долгом тапе / двойном касании */
+a, button, .btn, .platform { -webkit-user-select: none; user-select: none; }
+
+/* Фокус только для клавиатуры */
+a:focus:not(:focus-visible), button:focus:not(:focus-visible) { outline: none; }
+
+a:focus-visible, button:focus-visible {
+  outline: 2px solid #7c3aed;
+  outline-offset: 2px;
+}
 
 html {
   scroll-behavior: smooth;
@@ -1058,26 +1074,27 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
               border-color 0.35s var(--ease);
 }
 
-/* ---------------- Platforms ---------------- */
+/* ---------------- Platforms (мини-карточки 2x2) ---------------- */
 
 .platforms {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
-  max-width: 1040px;
-  margin: 34px auto 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  max-width: 520px;
+  margin: 36px auto 0;
 }
 
 .platform {
   position: relative;
   display: flex;
-  align-items: center;
-  gap: 13px;
-  padding: 14px 16px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 20px;
   text-align: left;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.62);
-  border: 1px solid rgba(124, 58, 237, 0.18);
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(124, 58, 237, 0.15);
   backdrop-filter: blur(14px) saturate(160%);
   -webkit-backdrop-filter: blur(14px) saturate(160%);
   box-shadow: var(--shadow);
@@ -1088,77 +1105,64 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 }
 
 .platform-icon {
-  width: 40px; height: 40px;
-  flex-shrink: 0;
-  display: grid;
-  place-items: center;
-  border-radius: 12px;
-  background: linear-gradient(135deg, rgba(124, 58, 237, 0.10), rgba(167, 139, 250, 0.22));
+  display: block;
+  margin-bottom: 10px;
   color: var(--accent);
-  transition: background 0.35s var(--ease), color 0.35s var(--ease), transform 0.45s var(--ease);
+  transition: transform 0.45s var(--ease);
 }
 
-.platform-icon svg { width: 21px; height: 21px; }
+.platform-icon svg { width: 32px; height: 32px; }
 
-.platform-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
-
-.platform-label {
-  font-size: 14.5px;
+.platform-name {
+  font-family: var(--font-display);
+  font-size: 17px;
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
   color: var(--heading);
 }
 
-.platform-sub {
-  margin-top: 3px;
-  font-size: 12px;
-  font-weight: 500;
+.platform-desc {
+  font-size: 13.5px;
+  line-height: 1.4;
   color: var(--muted);
+}
+
+.platform-badge {
+  margin-top: 10px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: rgba(124, 58, 237, 0.09);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
 }
 
 .platform:not(.is-disabled):hover {
   transform: translateY(-4px);
-  background: rgba(255, 255, 255, 0.92);
-  border-color: rgba(124, 58, 237, 0.42);
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(124, 58, 237, 0.4);
   box-shadow: var(--shadow-hover);
 }
 
-.platform:not(.is-disabled):hover .platform-icon {
-  background: var(--gradient);
-  color: #fff;
-  transform: scale(1.06) rotate(-4deg);
-}
-
+.platform:not(.is-disabled):hover .platform-icon { transform: scale(1.08) rotate(-4deg); }
 .platform:not(.is-disabled):active { transform: translateY(-1px) scale(0.98); }
 
 /* Скоро: ссылка есть (/apk, /ios, /windows), но не кликается */
 .platform.is-disabled {
   cursor: not-allowed;
   pointer-events: none;
-  background: rgba(255, 255, 255, 0.5);
-  border-style: dashed;
-  box-shadow: none;
+  background: rgba(255, 255, 255, 0.55);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
 
-.platform.is-disabled .platform-icon { background: rgba(124, 58, 237, 0.07); color: var(--accent-light); }
-.platform.is-disabled .platform-label { color: var(--text); }
-
-.platform.is-disabled .platform-sub {
-  display: inline-flex;
-  align-self: flex-start;
-  padding: 1px 8px;
-  border-radius: 999px;
-  background: rgba(124, 58, 237, 0.08);
-  color: var(--accent);
-  font-weight: 600;
-}
+.platform.is-disabled .platform-icon { color: var(--accent-light); }
 
 /* ---------------- Responsive ---------------- */
 
 @media (max-width: 1024px) {
-  .platforms { grid-template-columns: repeat(2, 1fr); max-width: 520px; }
   .features-grid { grid-template-columns: repeat(2, 1fr); }
   .social-grid { grid-template-columns: 1fr; max-width: 520px; margin: 0 auto; }
 }
@@ -1200,17 +1204,17 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
   .features-grid { grid-template-columns: 1fr; }
   .hero-cta .btn { width: 100%; max-width: 340px; }
   .platforms { gap: 10px; }
-  .platform { padding: 12px 12px; gap: 10px; }
-  .platform-icon { width: 36px; height: 36px; }
-  .platform-label { font-size: 13.5px; }
+  .platform { padding: 14px; border-radius: 14px; }
+  .platform-icon { margin-bottom: 8px; }
+  .platform-icon svg { width: 28px; height: 28px; }
+  .platform-name { font-size: 15px; }
+  .platform-desc { font-size: 12.5px; }
+  .platform-badge { margin-top: 8px; padding: 1px 9px; font-size: 11.5px; }
   .card { padding: 30px 26px; }
   .section-head { margin-bottom: 40px; }
   .phones { gap: 40px; }
 }
 
-@media (max-width: 360px) {
-  .platforms { grid-template-columns: 1fr; }
-}
 
 /* ---------------- Reduced motion ---------------- */
 
