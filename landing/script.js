@@ -37,11 +37,12 @@
   if ("IntersectionObserver" in window) {
     var io = new IntersectionObserver(
       function (entries) {
-        entries.forEach(function (entry) {
-          if (entry.isIntersecting) {
-            entry.target.classList.add("in");
-            io.unobserve(entry.target);
-          }
+        /* Stagger: элементы, вошедшие в экран вместе, появляются каскадом (до 6 шагов по 90 мс) */
+        var batch = entries.filter(function (entry) { return entry.isIntersecting; });
+        batch.forEach(function (entry, i) {
+          entry.target.style.setProperty("--d", Math.min(i, 5) * 90 + "ms");
+          entry.target.classList.add("in");
+          io.unobserve(entry.target);
         });
       },
       { threshold: 0.12, rootMargin: "0px 0px -40px 0px" }
@@ -55,6 +56,11 @@
       el.classList.add("in");
     });
   }
+
+  /* ---------- Платформы «Скоро»: ссылка не открывается ---------- */
+  document.querySelectorAll(".platform.is-disabled").forEach(function (el) {
+    el.addEventListener("click", function (e) { e.preventDefault(); });
+  });
 
   /* ---------- FAQ: аккордеон ---------- */
   var faqItems = document.querySelectorAll(".faq-item");
