@@ -334,6 +334,41 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 .hero-anim-d4 { animation-delay: 0.58s; }
 .hero-anim-d5 { animation-delay: 0.92s; }
 
+/* Hero: арт Luna (mobile/tablet — под текстом по центру) */
+.hero-art {
+  position: relative;
+  width: 100%;
+  max-width: min(360px, 80vw);
+  margin: 48px auto 0;
+}
+
+.hero-art::before {
+  content: "";
+  position: absolute;
+  inset: 8% -12% -6%;
+  z-index: 0;
+  background: radial-gradient(closest-side, rgba(124, 58, 237, 0.22), transparent 72%);
+  filter: blur(36px);
+  pointer-events: none;
+}
+
+.hero-art picture { position: relative; z-index: 1; display: block; }
+
+.hero-art-img {
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius);
+  border: 1px solid rgba(124, 58, 237, 0.16);
+  box-shadow: 0 2px 6px rgba(26, 15, 46, 0.06), 0 24px 56px rgba(124, 58, 237, 0.28);
+  animation: luna-float 6s ease-in-out infinite;
+  will-change: transform;
+}
+
+@keyframes luna-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-14px); }
+}
+
 /* Лёгкий дрейф свечения (translate не мешает базовому transform) */
 @keyframes glow-drift {
   0%, 100% { translate: 0 0; }
@@ -1160,6 +1195,23 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 
 .platform.is-disabled .platform-icon { color: var(--accent-light); }
 
+/* Hero desktop: текст слева, арт справа (~40%) */
+@media (min-width: 1025px) {
+  .hero-inner {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 40%;
+    align-items: center;
+    gap: 64px;
+  }
+  .hero-copy { text-align: left; }
+  .hero-copy .hero-logo { margin-left: 0; margin-right: 0; }
+  .hero-copy .hero-title,
+  .hero-copy .hero-sub,
+  .hero-copy .platforms { margin-left: 0; margin-right: 0; }
+  .hero-copy .hero-cta { justify-content: flex-start; }
+  .hero-art { max-width: none; margin: 0; }
+}
+
 /* ---------------- Responsive ---------------- */
 
 @media (max-width: 1024px) {
@@ -1203,6 +1255,7 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 @media (max-width: 600px) {
   .features-grid { grid-template-columns: 1fr; }
   .hero-cta .btn { width: 100%; max-width: 340px; }
+  .hero-art { max-width: 80vw; margin-top: 40px; }
   .platforms { gap: 10px; }
   .platform { padding: 14px; border-radius: 14px; }
   .platform-icon { margin-bottom: 8px; }
@@ -1227,4 +1280,5 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
   }
   .reveal, .hero-anim, .hero-anim-logo, .platform { opacity: 1; transform: none; translate: none; }
   .hero-glow { animation: none; }
+  .hero-art-img { animation: none; }
 }
