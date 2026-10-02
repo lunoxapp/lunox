@@ -14668,7 +14668,7 @@ function buildReactionsBar(msg) {
     const mine = uids.includes(currentUser.uid);
     const pill = document.createElement('div');
     pill.className = 'reaction-pill' + (mine ? ' mine' : '');
-    pill.innerHTML = `<span>${emoji}</span><span class="rp-count">${uids.length}</span>`;
+    pill.innerHTML = `<span>${escapeHtml(emoji)}</span><span class="rp-count">${uids.length}</span>`;
     pill.addEventListener('click', (e) => {
       e.stopPropagation();
       toggleMessageReaction(msg, emoji);
@@ -15389,7 +15389,7 @@ async function sendMessage() {
     await bumpChatAfterSend(text);
     delete chatMessagesSearchCache[currentChatId];
     replyToMessage = null; updateReplyPreviewUI();
-    if (currentChatPartnerUid === DEEPSEEK_BOT_UID) triggerDeepSeekReply(currentChatId, text);
+    // Бот-чат отключён: rules запрещают senderId='deepseek-ai-bot'. ИИ работает во вкладке ИИ (callAiChat).
   } catch (err) {
     alert('Не удалось отправить сообщение: ' + err.message);
   } finally {
@@ -15430,6 +15430,9 @@ async function triggerDeepSeekReply(chatId, latestUserText) {
 }
 
 async function postDeepSeekMessage(chatId, text) {
+  // Отключено: Firestore rules отклоняют сообщения с senderId='deepseek-ai-bot' (защита от подделки).
+  console.warn('[Lunox] postDeepSeekMessage отключена');
+  return;
   text = String(text || '').slice(0, 5000);
   await db.collection('chats').doc(chatId).collection('messages').add({
     text: text, isBotReply: true, botType: 'deepseek',

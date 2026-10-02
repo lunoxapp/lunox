@@ -391,6 +391,11 @@ return d.keys().hasOnly([
 && msgUrlOk(d.get('gifUrl', null))
 && msgUrlOk(d.get('stickerUrl', null))
 && msgUrlOk(d.get('fileUrl', null))
+&& (d.get('location', null) == null ||
+(d.location.keys().hasOnly(['lat', 'lng'])
+&& d.location.lat is number && d.location.lng is number
+&& d.location.lat >= -90 && d.location.lat <= 90
+&& d.location.lng >= -180 && d.location.lng <= 180))
 && d.get('readBy', []) is list
 && d.get('readBy', []).hasOnly([d.senderId]);
 }
@@ -406,7 +411,9 @@ function msgReactionsOk() {
 let n = request.resource.data.get('reactions', {});
 return n is map
 && n.diff(msgReactionsOld()).affectedKeys().hasOnly([request.auth.uid])
-&& (!(request.auth.uid in n) || (n[request.auth.uid] is string && n[request.auth.uid].size() <= 32));
+&& (!(request.auth.uid in n) || (n[request.auth.uid] is string
+&& n[request.auth.uid].size() <= 11
+&& !n[request.auth.uid].matches('.*[<>&"\'/=].*')));
 }
 function msgReadByOk() {
 let o = resource.data.get('readBy', []);
@@ -650,14 +657,10 @@ allow read: if isSignedIn()
 && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.members;
 allow create: if isSignedIn()
 && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.members
-&& (
-request.resource.data.senderId == request.auth.uid
-|| (
-get(/databases/$(database)/documents/chats/$(chatId)).data.get('isBot', false) == true
-&& request.resource.data.senderId == 'deepseek-ai-bot'
-&& 'deepseek-ai-bot' in get(/databases/$(database)/documents/chats/$(chatId)).data.members
-)
-)
+// senderId только свой: клиенту запрещено писать от имени 'deepseek-ai-bot' (подделка сообщений бота).
+// Ответы ИИ (Gemini/GigaChat) в Firestore-чаты не пишутся — вкладка ИИ работает отдельно.
+&& request.resource.data.senderId == request.auth.uid
+&& request.resource.data.senderId != 'deepseek-ai-bot'
 && msgCreateOk()
 && messageId.matches('[A-Za-z0-9]{20}');
 allow update: if isSignedIn()
@@ -830,7 +833,7 @@ allow create: if request.resource.data.keys().hasOnly(['timestamps', 'updatedAt'
 && request.resource.data.updatedAt >= request.time.toMillis() - 5 * 60 * 1000;
 allow update: if request.resource.data.keys().hasOnly(['timestamps', 'updatedAt'])
 && request.resource.data.timestamps is list
-&& request.resource.data.timestamps.size() <= 50
+&& request.resource.data.timestamps.size() <= 10
 && request.resource.data.timestamps.size() == resource.data.timestamps.size() + 1
 && request.resource.data.timestamps.hasAll(resource.data.timestamps)
 && request.resource.data.updatedAt is number
@@ -853,14 +856,17 @@ allow update: if request.resource.data.keys().hasOnly(['count', 'windowStart', '
 && (
 (
 // тот же цикл: окно не сдвигается, count растёт ровно на 1,
-// lockedUntil либо не меняется, либо выставляется первый раз (null -> число, не в прошлом более чем на 15 мин вперёд)
+// lockedUntil либо не меняется, либо выставляется первый раз (null -> число, в будущем, не дальше 10 мин + 1 мин запас на часы клиента,
+// и только когда этой попыткой count достиг 5). TODO: перенести блокировку в Cloudflare Worker (анонимный клиент всё ещё может сам набить 5 попыток).
 request.resource.data.windowStart == resource.data.windowStart &&
 request.resource.data.count == resource.data.get('count', 0) + 1 &&
 (
 request.resource.data.get('lockedUntil', null) == resource.data.get('lockedUntil', null) ||
 (resource.data.get('lockedUntil', null) == null &&
 request.resource.data.lockedUntil is number &&
-request.resource.data.lockedUntil <= request.time.toMillis() + 15 * 60 * 1000)
+request.resource.data.lockedUntil <= request.time.toMillis() + 11 * 60 * 1000 &&
+request.resource.data.lockedUntil > request.time.toMillis() &&
+request.resource.data.count >= 5)
 )
 ) ||
 (
