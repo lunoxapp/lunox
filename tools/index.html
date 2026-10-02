@@ -124,7 +124,8 @@
 
   /* Адаптив */
   @media (max-width:900px){
-    .layout{ grid-template-columns:1fr; gap:16px; }
+    .layout{ grid-template-columns:minmax(0,1fr); gap:16px; }
+    .side, main{ min-width:0; }
     .side{ position:static; padding:8px; border-radius:var(--radius-md); }
     .side-title{ display:none; }
     .cats{ flex-direction:row; overflow-x:auto; scrollbar-width:none; }
@@ -137,8 +138,20 @@
     .topbar{ margin:0 -14px 16px; padding-left:14px; padding-right:14px; }
     .brand-name{ font-size:15px; }
     .search{ height:48px; }
-    .grid{ grid-template-columns:1fr; gap:12px; }
+    .grid{ grid-template-columns:minmax(0,1fr); gap:12px; }
     .card{ padding:18px; }
+  }
+  @media (max-width:480px){
+    html{ overflow-x:hidden; }
+    body{ overflow-x:clip; }   /* clip, не hidden: hidden на body ломает sticky-шапку */
+    .shell{ width:100%; max-width:100%; padding:0 16px calc(24px + env(safe-area-inset-bottom,0px)); }
+    .topbar{ margin:0 -16px 16px; padding-left:16px; padding-right:16px; flex-wrap:wrap; row-gap:8px; }
+    .brand-name{ font-size:14.5px; }
+    .count{ font-size:12px; padding:5px 12px; }
+    .layout, .side, main, .search, .grid, .cats{ width:100%; max-width:100%; min-width:0; }
+    .grid{ grid-template-columns:minmax(0,1fr); }
+    .card{ width:100%; max-width:100%; min-width:0; }
+    .search{ padding:0 14px; }
   }
   @media (prefers-reduced-motion:reduce){ *,*::before,*::after{ animation-duration:.01ms !important; transition-duration:.01ms !important; } }
 </style>
