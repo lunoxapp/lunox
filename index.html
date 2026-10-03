@@ -774,6 +774,11 @@ body.theme-light .gif-panel-search{background:#f5f5fb}
 .shop-admin-row input:focus,.shop-admin-row select:focus{border-color:var(--violet)}
 .shop-admin-row .shop-btn{flex-shrink:0}
 .shop-admin-row .shop-btn.danger{background:linear-gradient(90deg,#ef4444,#f87171)}
+/* Аватарка в превью рамок и плитках магазина строго круглая (WebKit/iOS теряет скругление на слоях с backdrop-filter/анимацией).
+   overflow:hidden не ставим на custom-рамки: их картинка-рамка рисуется на весь блок и не должна обрезаться. */
+.frame-prev,.shop-card-avatar.av-prev:not(.sq){isolation:isolate}
+.frame-prev:not([data-frame="custom"]){overflow:hidden}
+.frame-prev img,.shop-card-avatar.av-prev:not(.sq) img{border-radius:50%;-webkit-clip-path:circle(50% at 50% 50%);clip-path:circle(50% at 50% 50%)}
 </style>
 <style id="lunox-profile-search-css">
 .my-uname-ico{position:absolute;right:12px;top:50%;transform:translateY(-50%);width:18px;height:18px;display:flex;align-items:center;justify-content:center;pointer-events:none}
