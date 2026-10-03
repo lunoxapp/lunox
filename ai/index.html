@@ -827,23 +827,19 @@
   var MODELS = [
     { name: 'Nemotron 3 Ultra',       slug: 'nvidia/nemotron-3-ultra-550b-a55b:free',    desc: 'Флагман NVIDIA, 550B, контекст 1M' },
     { name: 'Nemotron 3 Super',       slug: 'nvidia/nemotron-3-super-120b-a12b:free',    desc: '120B MoE для агентов и рассуждений' },
-    { name: 'Nemotron 3.5 Lightning', slug: 'nvidia/nemotron-3.5-lightning:free',        desc: 'Быстрая MoE 30B, 3B активных' },
-    { name: 'Nemotron 3 Nano Omni',   slug: 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free', desc: 'Мультимодальная 30B-A3B с рассуждением' },
+    { name: 'Nemotron 3.5 Lightning', slug: 'nvidia/nemotron-3.5-lightning-30b-a3b:free',        desc: 'Быстрая MoE 30B, 3B активных' },
+    { name: 'Nemotron 3 Nano Omni',   slug: 'nvidia/nemotron-3-nano-omni-30b-a3b:free', desc: 'Мультимодальная 30B-A3B с рассуждением' },
     { name: 'Qwen 3.8 27B',           slug: 'qwen/qwen3.8-27b:free',                     desc: 'Vision-language модель, код и агенты' },
     { name: 'Gemma 4 31B',            slug: 'google/gemma-4-31b-it:free',                desc: 'Google, 31B, 140+ языков, контекст 256K' },
     { name: 'Gemma 4 26B A4B',        slug: 'google/gemma-4-26b-a4b-it:free',            desc: 'Google MoE, 3.8B активных, быстрая' },
     { name: 'Llama 3.3 70B',          slug: 'meta-llama/llama-3.3-70b-instruct:free',    desc: 'Meta, 70B, диалог на 8 языках' }, /* нет в списке Free на 2026-10-02: вероятен 404 */
-    { name: 'Apodex 1.1 Mini',        slug: 'apodex/apodex-1.1-mini:free',               desc: 'Рассуждения для исследований и прогнозов' },
-    { name: 'Inkling Small',          slug: 'thinkingmachines/inkling-small:free',       desc: 'Мультимодальная MoE, 12B активных' },
-    { name: 'Inkling',                slug: 'thinkingmachines/inkling:free',             desc: 'Мультимодальная MoE, 41B активных' },
+    { name: 'Apodex 1.1 Mini',        slug: 'openrouter/apodex-1.1-mini:free',               desc: 'Рассуждения для исследований и прогнозов' },
     { name: 'Ling 3.0 Flash Sante',   slug: 'inclusionai/ling-3.0-flash-sante:free',     desc: 'Медицинская MoE от inclusionAI' },
     { name: 'North Mini Code',        slug: 'cohere/north-mini-code:free',               desc: 'Агентная модель для кода от Cohere' },
     { name: 'Laguna S 2.1',           slug: 'poolside/laguna-s-2.1:free',                desc: 'Кодовый агент Poolside, 118B' },
     { name: 'Laguna XS 2.1',          slug: 'poolside/laguna-xs-2.1:free',               desc: 'Компактный кодовый агент Poolside' },
-    { name: 'Dots3-Note Preview',     slug: 'dots-studio/dots-3-note-preview:free',      desc: 'Лёгкая MoE семейства Dots 3, 512K' },
-    { name: 'LFM2.5-2.6B',            slug: 'liquid/lfm-2.5-2.6b:free',                  desc: 'Компактная модель Liquid AI, 2.6B' },
-    { name: 'Mercury Decide',         slug: 'inception/mercury-decide:free',             desc: 'Модель решений, не для диалога' },
-    { name: 'Span-01 Lite',           slug: 'respan/span-01-lite:free',                  desc: 'Оценка поведения, не для диалога' }
+    { name: 'Dots3-Note Preview',     slug: 'dots-studio/dots3-note-preview:free',      desc: 'Лёгкая MoE семейства Dots 3, 512K' },
+    { name: 'LFM2.5-2.6B',            slug: 'liquid/lfm2.5-2.6b:free',                  desc: 'Компактная модель Liquid AI, 2.6B' }
   ];
   var DEFAULT_MODEL = MODELS[0].slug;
   var activeSlug = DEFAULT_MODEL;
