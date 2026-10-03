@@ -1239,7 +1239,7 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
   box-shadow: 0 6px 18px rgba(30, 10, 70, 0.28);
 }
 
-/* Анимированный фон Pro: «нейросеть» (18 точек, 28 линий + подложка) */
+/* Анимированный фон Pro: «нейросеть» (18 точек, до 30 линий) */
 .plan-bg {
   position: absolute;
   inset: 0;
@@ -1253,23 +1253,15 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 
 .plan-bg svg { display: block; width: 100%; height: 100%; }
 
-/* Волна по сети: фаза --p (0..1) у каждого элемента по диагонали, от верх-лево к низ-право */
-.np-base { fill: none; stroke: rgba(255, 255, 255, 0.3); stroke-width: 1; }
-
-/* Линии: световой штрих пробегает слева направо (pathLength=100, штрих 28 + пауза) */
-.np-lines line {
-  fill: none;
-  stroke: rgba(255, 255, 255, 0.3);
-  stroke-width: 1.4;
+/* Сеть: геометрию линий и точек двигает JS (<script> в конце index.html), здесь только вид */
+#net line {
+  stroke: #fff;            /* прозрачность 0.25 и затухание по дистанции задаёт JS через stroke-opacity */
+  stroke-width: 1;
   stroke-linecap: round;
-  stroke-dasharray: 28 172;
-  stroke-dashoffset: 28;
-  animation: np-flow 4.5s ease-in-out infinite;
-  animation-delay: calc(var(--p, 0) * -4.5s);
 }
 
-/* Точки: scale 1 -> 1.3 -> 1 и opacity 0.4 -> 1 -> 0.4, фаза сдвигается волной */
-.np-dots circle {
+/* Точки: rgba(255,255,255,.6), пульсация scale + opacity волной (фаза --p) */
+#net circle {
   fill: rgba(255, 255, 255, 0.6);
   opacity: 0.4;
   transform-box: fill-box;
@@ -1283,15 +1275,8 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
   50%      { transform: scale(1.3); opacity: 1; }
 }
 
-@keyframes np-flow {
-  0%   { stroke-dashoffset: 28; }
-  60%  { stroke-dashoffset: -100; }
-  100% { stroke-dashoffset: -100; }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .np-lines line { animation: none; stroke-dasharray: none; stroke-dashoffset: 0; opacity: 0; }
-  .np-dots circle { animation: none; transform: none; opacity: 0.6; }
+  #net circle { animation: none; transform: none; opacity: 0.6; }
 }
 
 @media (max-width: 1024px) {
