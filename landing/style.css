@@ -1149,18 +1149,23 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
   color: var(--text);
 }
 
+/* Галочка: только stroke, без круга и заливки (Feather check 16px) */
 .plan-check {
   flex: none;
-  width: 22px; height: 22px;
-  margin-top: 1px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: rgba(124, 58, 237, 0.10);
-  color: var(--accent);
+  width: 16px; height: 16px;
+  margin-top: 3px;
 }
 
-.plan-check svg { width: 12px; height: 12px; }
+.plan-check svg { display: block; width: 16px; height: 16px; }
+
+/* Бейдж тарифа: круг-иконка 22px, только stroke (стиль TG Premium, луна Lunox) */
+.plan-name--badge { display: inline-flex; align-items: center; gap: 10px; }
+
+.plan-badge { position: relative; flex: none; width: 22px; height: 22px; display: inline-block; }
+
+.plan-badge > svg { display: block; width: 22px; height: 22px; }
+
+.plan-badge > .plan-badge-star { position: absolute; top: -4px; right: -6px; width: 10px; height: 10px; }
 
 .plan-btn { width: 100%; }
 
@@ -1174,17 +1179,36 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
   box-shadow: none;
 }
 
-/* Premium Pro: акцентная карточка (рамка 2px без сдвига вёрстки, glow) */
+/* Premium Pro: фиолетовая карточка, белый текст, лёгкий glow */
 .plan--pro {
-  border-color: #7c3aed;
-  background: linear-gradient(180deg, rgba(124, 58, 237, 0.07), rgba(255, 255, 255, 0.82) 46%);
-  box-shadow: 0 0 0 1px #7c3aed, 0 18px 48px rgba(124, 58, 237, 0.20), 0 0 40px rgba(167, 139, 250, 0.35);
+  border-color: rgba(255, 255, 255, 0.22);
+  background: linear-gradient(160deg, #7c3aed 0%, #6d28d9 100%);
+  box-shadow: 0 18px 48px rgba(109, 40, 217, 0.32), 0 0 40px rgba(167, 139, 250, 0.40);
 }
 
 .plan--pro:hover {
-  border-color: #7c3aed;
-  background: linear-gradient(180deg, rgba(124, 58, 237, 0.09), rgba(255, 255, 255, 0.94) 46%);
-  box-shadow: 0 0 0 1px #7c3aed, 0 24px 56px rgba(124, 58, 237, 0.28), 0 0 48px rgba(167, 139, 250, 0.45);
+  border-color: rgba(255, 255, 255, 0.36);
+  background: linear-gradient(160deg, #7c3aed 0%, #6d28d9 100%);
+  box-shadow: 0 24px 56px rgba(109, 40, 217, 0.42), 0 0 56px rgba(167, 139, 250, 0.55);
+}
+
+.plan--pro .plan-head,
+.plan--pro .plan-price,
+.plan--pro .plan-list,
+.plan--pro .plan-btn { position: relative; z-index: 1; }
+
+.plan--pro .plan-name,
+.plan--pro .plan-amount { color: #fff; }
+.plan--pro .plan-period { color: rgba(255, 255, 255, 0.72); }
+.plan--pro .plan-list { border-top-color: rgba(255, 255, 255, 0.18); }
+.plan--pro .plan-list li { color: rgba(255, 255, 255, 0.94); }
+.plan--pro .plan-soon { background: rgba(255, 255, 255, 0.18); color: #fff; }
+
+/* Скоро на Pro: полупрозрачная белая кнопка */
+.plan--pro .plan-btn:disabled {
+  background: rgba(255, 255, 255, 0.16);
+  border: 1.5px solid rgba(255, 255, 255, 0.38);
+  color: #fff;
 }
 
 .plan-popular {
@@ -1206,6 +1230,51 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 }
 
 .plan-popular svg { width: 13px; height: 13px; }
+
+/* На фиолетовой карточке пилюля белая, чтобы не сливалась с фоном */
+.plan--pro .plan-popular {
+  z-index: 2;
+  background: #fff;
+  color: #6d28d9;
+  box-shadow: 0 6px 18px rgba(30, 10, 70, 0.28);
+}
+
+/* Анимированный фон Pro: «нейросеть» (18 точек, линии, только opacity) */
+.plan-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.3) 0%, #000 34%);
+          mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.3) 0%, #000 34%);
+}
+
+.plan-bg svg { display: block; width: 100%; height: 100%; }
+
+.np-lines line { stroke: rgba(255, 255, 255, 0.28); stroke-width: 1; }
+.np-dots circle { fill: rgba(255, 255, 255, 0.30); }
+
+.np-lines {
+  opacity: 0.4;
+  animation: np-flicker 4.2s ease-in-out infinite;
+}
+.np-lines--2 { animation-duration: 5.1s; animation-delay: -1.4s; }
+.np-lines--3 { animation-duration: 3.6s; animation-delay: -2.3s; }
+.np-lines--4 { animation-duration: 4.8s; animation-delay: -0.6s; }
+
+.np-dots circle {
+  opacity: 0.3;
+  animation: np-pulse 2.7s ease-in-out infinite;
+}
+
+@keyframes np-pulse   { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+@keyframes np-flicker { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .np-lines, .np-dots circle { animation: none; opacity: 0.7; }
+}
 
 @media (max-width: 1024px) {
   .pricing-grid { gap: 20px; }
