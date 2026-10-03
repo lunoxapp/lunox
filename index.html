@@ -1157,6 +1157,62 @@ button:active,.icon-btn:active,.btn-primary:active,.btn-secondary:active,.action
 .chat-header .online-dot::after{display:block;animation:onlinePulse 1.8s ease-out infinite}
 @media (prefers-reduced-motion:reduce){.chat-header .online-dot::after{animation:none;display:none}}
 </style>
+<style id="lunox-v37-loading-glass">
+/* ===== v37: loading — 4 точки (логика референса, стиль Lunox) ===== */
+.lx-dots{display:block;width:64px;height:18px;overflow:visible;flex-shrink:0}
+.lx-dots circle{fill:#7c3aed;opacity:.3;animation:lxDot 1.5s cubic-bezier(0.16,1,0.3,1) infinite}
+.lx-dots circle:nth-child(2){animation-delay:.15s}
+.lx-dots circle:nth-child(3){animation-delay:.3s}
+.lx-dots circle:nth-child(4){animation-delay:.45s}
+@keyframes lxDot{0%,100%{opacity:.3;transform:translateY(0)}50%{opacity:1;transform:translateY(-4px)}}
+html.lx-hidden .lx-dots circle{animation-play-state:paused}
+@media (prefers-reduced-motion:reduce){.lx-dots circle{animation:none;opacity:.7;transform:none}}
+body.anim-off .lx-dots circle{animation:none !important;opacity:.7;transform:none}
+.splash-loader{margin-top:8px;line-height:0}
+.chat-empty-state .lx-dots{margin-top:6px}
+
+/* ===== v37: glass (шапка чата, composer, модалки, настройки, магазин, шторка модели, тосты) =====
+   Не трогаем: список чатов, сообщения, кнопки. Светлая тема остаётся на прежнем светлом стекле.
+   Фон берёт --glass-opacity (по умолчанию 0.6 = rgba(26,15,46,.6)), blur отключается уровнем «Выкл» (--lx-glass-blur). */
+:root{--lx-glass-blur:blur(20px)}
+body:not(.theme-light) .chat-header,
+body:not(.theme-light) .composer-wrap,
+body:not(.theme-light) .modal-sheet,
+body:not(.theme-light) #screen-settings.settings-drawer,
+body:not(.theme-light) .shop-page-overlay,
+body:not(.theme-light) .ai-model-dropdown,
+body:not(.theme-light) .lunox-toast{
+  -webkit-backdrop-filter:var(--lx-glass-blur);
+  backdrop-filter:var(--lx-glass-blur);
+  border-color:rgba(167,139,250,0.15) !important;
+  box-shadow:0 8px 32px rgba(0,0,0,0.3);
+}
+/* у шапки при прокрутке остаётся более плотный фон (.scrolled) — не перебиваем */
+body:not(.theme-light) .chat-header:not(.scrolled),
+body:not(.theme-light) .composer-wrap,
+body:not(.theme-light) .modal-sheet,
+body:not(.theme-light) #screen-settings.settings-drawer,
+body:not(.theme-light) .shop-page-overlay,
+body:not(.theme-light) .ai-model-dropdown,
+body:not(.theme-light) .lunox-toast{
+  background:rgba(26,15,46,var(--glass-opacity,0.6)) !important;
+}
+/* старые браузеры без backdrop-filter: почти непрозрачный фон вместо «грязного» стекла */
+@supports not ((backdrop-filter:blur(20px)) or (-webkit-backdrop-filter:blur(20px))){
+  body:not(.theme-light) .chat-header:not(.scrolled),
+  body:not(.theme-light) .composer-wrap,
+  body:not(.theme-light) .modal-sheet,
+  body:not(.theme-light) #screen-settings.settings-drawer,
+  body:not(.theme-light) .shop-page-overlay,
+  body:not(.theme-light) .ai-model-dropdown,
+  body:not(.theme-light) .lunox-toast{background:rgba(26,15,46,0.95) !important}
+}
+
+/* ===== v37b: ползунок размытия + .no-glass ===== */
+.no-glass *{backdrop-filter:none !important;-webkit-backdrop-filter:none !important}
+.lx-range{flex:1 1 100%;width:100%;height:24px;margin:0;accent-color:#7c3aed;cursor:pointer;background:transparent}
+.lx-range-hint{flex:1 1 100%;font-size:11.5px;color:var(--gray)}
+</style>
 </head>
 <body>
 
@@ -1166,7 +1222,17 @@ button:active,.icon-btn:active,.btn-primary:active,.btn-secondary:active,.action
     <div class="splash-moon"><svg class="tg-ic" viewBox="0 0 24 24" style="width:84px;height:84px;color:var(--violet-bright);stroke-width:1.4"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></div>
   </div>
   <div class="splash-logo-text">Lunox</div>
+  <div class="splash-loader"><svg class="lx-dots" width="64" height="18" viewBox="0 0 64 18" aria-hidden="true" focusable="false"><circle cx="5" cy="13" r="5"/><circle cx="23" cy="13" r="5"/><circle cx="41" cy="13" r="5"/><circle cx="59" cy="13" r="5"/></svg></div>
 </div>
+<script>(function(){var r=document.documentElement;function s(){r.classList.toggle("lx-hidden",document.hidden)}document.addEventListener("visibilitychange",s);s();})();</script>
+<script>(function(){
+var K="lunox_blur",root=document.documentElement;
+function read(){var v=100;try{var s=localStorage.getItem(K);if(s!==null&&s!==""){var n=parseInt(s,10);if(n>=0&&n<=100)v=n}}catch(e){}return v}
+function ui(v){var sl=document.getElementById("lx-blur-slider"),lb=document.getElementById("lx-blur-value");if(sl)sl.value=v;if(lb)lb.textContent=v===0?"Выкл":(v/5)+" px"}
+window.lxApplyBlur=function(forceOff){var v=read(),px=v/5;root.style.setProperty("--lx-glass-blur",(forceOff||px===0)?"none":"blur("+px+"px)");root.classList.toggle("no-glass",v===0);ui(v)};
+document.addEventListener("input",function(e){var t=e.target;if(!t||t.id!=="lx-blur-slider")return;var v=parseInt(t.value,10)||0;try{localStorage.setItem(K,String(v))}catch(x){}window.lxApplyBlur(false)});
+window.lxApplyBlur(false);document.addEventListener("DOMContentLoaded",function(){ui(read())});
+})();</script>
 
 <div id="verify-banner" class="verify-banner" style="display:none">
   <svg class="tg-ic" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
@@ -1605,6 +1671,12 @@ button:active,.icon-btn:active,.btn-primary:active,.btn-secondary:active,.action
             <div class="settings-row" id="row-glass">
               <div class="settings-row-label"><span class="settings-row-icon"><svg class="tg-ic" viewBox="0 0 24 24"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg></span> Эффект стекла</div>
               <div class="settings-row-value" id="glass-value">Средний</div>
+            </div>
+            <div class="settings-row" id="row-glass-blur" style="flex-wrap:wrap;row-gap:10px">
+              <div class="settings-row-label"><span class="settings-row-icon"><svg class="tg-ic" viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg></span> Эффект стекла: размытие</div>
+              <div class="settings-row-value" id="lx-blur-value">20 px</div>
+              <input type="range" class="lx-range" id="lx-blur-slider" min="0" max="100" step="5" value="100" aria-label="Размытие стекла">
+              <div class="lx-range-hint">0 = выкл, 50 = мягко, 100 = максимум</div>
             </div>
             <div class="settings-row" id="row-nick-style" style="display:none;">
               <div class="settings-row-label"><span class="settings-row-icon"><svg class="tg-ic" viewBox="0 0 24 24"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/></svg></span> Стиль ника</div>
@@ -2211,6 +2283,7 @@ button:active,.icon-btn:active,.btn-primary:active,.btn-secondary:active,.action
     <div class="chat-empty-icon"><svg class="tg-ic tg-ic-fill" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></div>
     <h3>Lunox</h3>
     <p>Выберите чат слева, чтобы начать переписку</p>
+    <svg class="lx-dots" width="64" height="18" viewBox="0 0 64 18" aria-hidden="true" focusable="false"><circle cx="5" cy="13" r="5"/><circle cx="23" cy="13" r="5"/><circle cx="41" cy="13" r="5"/><circle cx="59" cy="13" r="5"/></svg>
   </div>
 
   <!-- ================= ГЕНЕРИЧЕСКОЕ МОДАЛЬНОЕ ОКНО ================= -->
@@ -4047,6 +4120,7 @@ function applyGlassEffect() {
   const st = document.documentElement.style;
   st.setProperty('--glass-blur', g.blur);
   st.setProperty('--glass-opacity', String(g.opacity));
+  if (window.lxApplyBlur) window.lxApplyBlur(key === 'off');
   const el = document.getElementById('glass-value');
   if (el) el.textContent = g.label;
 }
@@ -17324,7 +17398,7 @@ const SETTINGS_SECTIONS = [
   { id: 'privacy', label: 'Конфиденциальность', rows: ['row-privacy', 'row-privacy-messages', 'row-blocked', 'row-change-password', 'row-2fa'] },
   { id: 'data', label: 'Данные', rows: ['row-export', 'row-my-stickers', 'row-delete-account'] },
   { id: 'devices', label: 'Устройства', rows: ['row-switch-account', 'row-language', 'row-nav-order', 'row-show-welcome'] },
-  { id: 'appearance', label: 'Оформление', rows: ['row-theme', 'row-fontsize', 'row-animations', 'row-glass', 'row-autotheme', 'row-wallpaper', 'row-density', 'row-nick-style'] },
+  { id: 'appearance', label: 'Оформление', rows: ['row-theme', 'row-fontsize', 'row-animations', 'row-glass', 'row-glass-blur', 'row-autotheme', 'row-wallpaper', 'row-density', 'row-nick-style'] },
   { id: 'about', label: 'О приложении', rows: ['row-about', 'row-privacy-policy', 'row-lunox-rules', 'row-invite', 'row-beta-feedback', 'row-report-bug'] }
 ];
 let settingsSection = null;          // null — главный список, иначе id раздела
