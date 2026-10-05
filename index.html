@@ -1213,6 +1213,111 @@ body:not(.theme-light) .lunox-toast{
 .lx-range{flex:1 1 100%;width:100%;height:24px;margin:0;accent-color:#7c3aed;cursor:pointer;background:transparent}
 .lx-range-hint{flex:1 1 100%;font-size:11.5px;color:var(--gray)}
 </style>
+<style id="lunox-v39-chats-css">
+/* ===== build42: экран чатов — шапка, поиск, чипы, строки; нижнее меню на 4–5 вкладок ===== */
+:root{--nav-height:60px}
+#screen-main.on-chats > .topbar-lunox{display:none}
+
+/* --- шапка: аватар | Lunox + слоган | [контакты][создать][меню] --- */
+.chats-hdr{display:flex;align-items:center;gap:12px;padding:calc(env(safe-area-inset-top,0px) + 12px) 16px 10px;flex-shrink:0}
+.chats-hdr-avatar{flex:0 0 auto;width:46px;height:46px;padding:2px;border-radius:50%;border:0;background:conic-gradient(from 200deg,#c4b5fd,#7c3aed 35%,rgba(124,58,237,.35) 65%,#a78bfa);cursor:pointer;overflow:hidden;display:block;box-shadow:0 0 16px rgba(124,58,237,.55),0 0 0 1px rgba(167,139,250,.25)}
+#chats-hdr-avatar-inner{width:100% !important;height:100% !important;border-radius:50%;border:1.5px solid var(--bg-deep) !important;box-sizing:border-box;overflow:hidden;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center}
+#chats-hdr-avatar-inner svg{width:22px;height:22px}
+.chats-hdr-title{flex:1;min-width:0}
+.chats-hdr-name{font-family:Inter,system-ui,sans-serif;font-weight:800;font-size:22px;line-height:1.15;letter-spacing:-.01em;color:var(--text-main)}
+/* слоган: 11px, #8b8b94, при нехватке места переносится на 2 строки (не обрезается) */
+.chats-hdr-slogan{margin-top:2px;font-size:11px;line-height:1.2;color:#8b8b94;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:break-word}
+.chats-hdr-actions{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+/* кнопки — круглые, как в референсе */
+.chats-hdr .icon-btn{width:38px;height:38px;padding:0;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:rgba(124,58,237,.14);border:1px solid rgba(167,139,250,.28);color:var(--violet-bright);box-shadow:none}
+.chats-hdr .icon-btn svg{width:18px;height:18px}
+.chats-hdr .icon-btn:focus-visible,.chats-hdr-avatar:focus-visible{outline:2px solid var(--violet-bright);outline-offset:2px}
+@media (max-width:360px){.chats-hdr{gap:8px;padding-left:12px;padding-right:12px}.chats-hdr-actions{gap:6px}.chats-hdr .icon-btn{width:36px;height:36px}}
+
+/* --- поиск --- */
+#chats-search-bar{padding:2px 16px 10px;border:0 !important;background:transparent !important;backdrop-filter:none;-webkit-backdrop-filter:none}
+#chats-search-bar input{height:46px;padding:0 44px 0 46px;border-radius:20px;font-size:15px}
+#chats-search-bar .search-bar-inner .search-icon{left:16px;z-index:2;display:flex;color:#8b8b94}
+#chats-search-bar .search-icon svg{width:20px;height:20px}
+#chats-search-bar .search-clear-btn{right:10px;z-index:2}
+.chats-search-note{padding:2px 20px 8px}
+
+/* --- чипы-фильтры: горизонтальный скролл, ничего не обрезается --- */
+.chat-chips{display:flex;gap:8px;padding:2px 16px 10px;overflow-x:auto;overflow-y:hidden;flex-shrink:0;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;scroll-padding:0 16px}
+.chat-chips::-webkit-scrollbar{display:none}
+.chat-chips::after{content:"";flex:0 0 8px}
+.chat-chip{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 6px 0 12px;border-radius:999px;border:1px solid rgba(167,139,250,.22);background:rgba(124,58,237,.10);color:var(--text-dim);font:600 13px Inter,system-ui,sans-serif;cursor:pointer;white-space:nowrap}
+.chat-chip svg{width:16px;height:16px;flex-shrink:0}
+.chat-chip .chip-count{min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:rgba(124,58,237,.38);color:#ddd6fe;font-size:11.5px;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
+.chat-chip.active{background:linear-gradient(135deg,#7c3aed,#6d28d9);border-color:rgba(167,139,250,.5);color:#fff;box-shadow:0 6px 18px rgba(124,58,237,.35)}
+.chat-chip.active .chip-count{background:rgba(255,255,255,.22);color:#fff}
+.chat-chip:focus-visible{outline:2px solid var(--violet-bright);outline-offset:2px}
+body.theme-light .chat-chip:not(.active){background:rgba(255,255,255,.7);color:#4b5563}
+body.theme-light .chat-chip:not(.active) .chip-count{color:#5b21b6}
+
+/* строка «по дате / избранное» убрана (элементы остаются в DOM ради обработчиков; «Избранное» — в меню ⋮) */
+.chats-toolbar{display:none !important}
+
+/* --- список чатов --- */
+#chat-list-chats{padding:2px 16px 10px}
+#chat-list-chats .chat-item{display:flex;align-items:center;gap:12px;min-height:64px;margin:0 0 8px;padding:6px 12px !important;border-radius:20px !important;background:linear-gradient(180deg,rgba(124,58,237,.10),rgba(124,58,237,.04)),var(--glass);border:1px solid rgba(167,139,250,.16);box-shadow:none}
+#chat-list-chats .chat-item:hover{background:linear-gradient(180deg,rgba(124,58,237,.18),rgba(124,58,237,.08)),var(--glass) !important}
+#chat-list-chats .chat-item .avatar-wrap,#chat-list-chats .chat-item .avatar{width:52px !important;height:52px !important}
+#chat-list-chats .chat-item .avatar{font-size:20px !important;font-weight:700;border:2px solid rgba(167,139,250,.55)}
+#chat-list-chats .chat-item .online-dot{width:13px;height:13px;right:-1px;bottom:-1px;border:2px solid var(--bg-deep)}
+#chat-list-chats .chat-item-info{flex:1;min-width:0}
+#chat-list-chats .chat-item-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+#chat-list-chats .chat-item-name{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:8px;font-size:16px;font-weight:600;line-height:1.25;color:var(--text-main)}
+.chat-item-name-text{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#chat-list-chats .chat-item-name .chat-item-group-ic,#chat-list-chats .chat-item-name .reg-badge{flex-shrink:0}
+#chat-list-chats .chat-item-name .chat-item-group-ic svg{width:15px;height:15px}
+#chat-list-chats .chat-item-name .inline-username{flex:0 1 auto;min-width:0;margin-left:0}
+#chat-list-chats .chat-item-time{font-size:12px;color:var(--text-dim)}
+#chat-list-chats .chat-item-preview{margin-top:3px;font-size:14px;gap:8px}
+#chat-list-chats .unread-badge{min-width:20px;height:20px;padding:0 6px;border-radius:10px;font-size:11.5px;line-height:1;background:var(--violet);color:#fff}
+.chat-ticks{display:inline-flex;align-items:center;margin-left:0;color:var(--text-dim);flex-shrink:0}
+.chat-ticks svg{width:16px;height:16px}
+.chat-ticks.read{color:var(--violet-bright)}
+/* бейдж роли (Администратор и т.п.) */
+#chat-list-chats .chat-item-name .admin-role-badge{flex-shrink:0;padding:2px 8px;font-size:10.5px;font-weight:600;line-height:1.3;border-radius:999px;box-shadow:none;letter-spacing:.01em}
+#chat-list-chats .chat-item-name .admin-role-badge.role-admin,#chat-list-chats .chat-item-name .admin-role-badge.role-creator{background:rgba(124,58,237,.28);border:1px solid rgba(167,139,250,.4);color:#ddd6fe}
+#chat-list-chats .chat-item-name .admin-role-badge.role-moderator{background:rgba(148,163,184,.16);border:1px solid rgba(148,163,184,.3);color:var(--text-dim)}
+body.theme-light #chat-list-chats .chat-item-name .admin-role-badge.role-admin,body.theme-light #chat-list-chats .chat-item-name .admin-role-badge.role-creator{color:#5b21b6}
+/* значок «закрепить» — только у закреплённых (и по наведению на ПК); на телефоне — долгий тап */
+#chat-list-chats .chat-item .pin-icon:not(.active){display:none}
+@media (hover:hover){#chat-list-chats .chat-item:hover .pin-icon:not(.active){display:flex}}
+/* настройка «размер шрифта» продолжает работать */
+body.ui-font-small #chat-list-chats .chat-item-name{font-size:14px}
+body.ui-font-small #chat-list-chats .chat-item-preview{font-size:12.5px}
+body.ui-font-small #chat-list-chats .chat-item-time{font-size:11px}
+body.ui-font-large #chat-list-chats .chat-item-name{font-size:17px}
+body.ui-font-large #chat-list-chats .chat-item-preview{font-size:15px}
+body.ui-font-large #chat-list-chats .chat-item-time{font-size:13px}
+
+/* --- нижнее меню (как в TG): 60px, иконки 24px, подписи 11px, не обрезаются; 4 вкладки у юзера, 5 у админа --- */
+.bottom-nav{height:calc(var(--nav-height) + var(--nav-safe-bottom));padding:4px 6px calc(4px + var(--nav-safe-bottom));gap:0}
+.bottom-nav .nav-btn{flex:1 1 0;min-width:max-content;margin:0;padding:0 2px 5px;gap:2px;border-radius:24px;font-size:11px;font-weight:600;line-height:1.2;color:#8b8b94;background-color:transparent;background-image:none;box-shadow:none;transform:none;transition:color .25s ease,background-color .25s ease,transform .15s ease}
+body.ui-font-small .bottom-nav .nav-btn,body.ui-font-large .bottom-nav .nav-btn{font-size:11px}
+.bottom-nav .nav-btn .nav-icon{width:24px;height:24px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:24px;transform:none;filter:none;transition:transform .3s cubic-bezier(.2,.8,.2,1),filter .3s ease}
+.bottom-nav .nav-btn .nav-icon svg{width:24px;height:24px}
+.bottom-nav .nav-btn > span:not(.nav-icon):not(.nav-badge){max-width:none;overflow:visible;text-overflow:clip;white-space:nowrap;flex-shrink:0;font-size:11px;line-height:1.2}
+/* активная: плашка + иконка/текст/точка фиолетовые */
+.bottom-nav .nav-btn.active{color:var(--violet-bright);background-color:rgba(124,58,237,.24);background-image:none;box-shadow:none;transform:none}
+.bottom-nav .nav-btn.active .nav-icon{transform:translateY(-1px);filter:drop-shadow(0 0 6px rgba(167,139,250,.5))}
+.bottom-nav .nav-btn::after{content:"";position:absolute;left:50%;bottom:3px;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:var(--violet-bright);opacity:0;transform:scale(0);transition:opacity .25s ease,transform .3s cubic-bezier(.34,1.56,.64,1)}
+.bottom-nav .nav-btn.active::after{opacity:1;transform:scale(1)}
+.bottom-nav .nav-btn:active{background-color:rgba(124,58,237,.20);transform:scale(.96)}
+.bottom-nav .nav-btn:focus-visible{outline:2px solid var(--violet-bright);outline-offset:-2px}
+.bottom-nav .nav-badge{top:2px;right:calc(50% - 20px)}
+@media (prefers-reduced-motion:reduce){.bottom-nav .nav-btn,.bottom-nav .nav-btn .nav-icon,.bottom-nav .nav-btn::after{transition:none}}
+/* телефон: плавающая «таблетка» с отступами от краёв и низа, как в TG */
+@media (max-width:767px){
+  :root{--nav-gap:10px}
+  .bottom-nav,body.theme-light .bottom-nav{width:calc(100% - 32px) !important;max-width:448px !important;height:var(--nav-height);padding:4px 6px;bottom:calc(var(--nav-gap) + var(--nav-safe-bottom)) !important;border:1px solid rgba(167,139,250,.24) !important;border-radius:30px !important;box-shadow:0 10px 28px rgba(0,0,0,.45)}
+  body.theme-light .bottom-nav{background:#1a1a2e !important}
+  .tab-panel{bottom:calc(var(--nav-height) + var(--nav-gap) + var(--nav-safe-bottom) + 8px)}
+}
+</style>
 </head>
 <body>
 
@@ -1430,7 +1535,7 @@ window.lxApplyBlur(false);document.addEventListener("DOMContentLoaded",function(
   </div>
 
   <!-- ================= ЭКРАН 2: ГЛАВНЫЙ ================= -->
-  <div id="screen-main" class="screen app-panel">
+  <div id="screen-main" class="screen app-panel on-chats">
     <header class="topbar topbar-lunox">
       <div class="avatar-wrap clickable" id="topbar-avatar-wrap" title="Профиль" style="width:34px;height:34px;">
         <div class="avatar" id="topbar-avatar" style="width:34px;height:34px;font-size:13px;">?</div>
@@ -1448,14 +1553,32 @@ window.lxApplyBlur(false);document.addEventListener("DOMContentLoaded",function(
 
       <!-- ---- ВКЛАДКА: ЧАТЫ ---- -->
       <div class="tab-panel active" id="tab-chats">
+        <div class="chats-hdr" id="chats-hdr">
+          <button class="chats-hdr-avatar" id="chats-hdr-avatar" type="button" title="Профиль" aria-label="Профиль"><div class="avatar" id="chats-hdr-avatar-inner"><svg class="tg-ic" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div></button>
+          <div class="chats-hdr-title">
+            <div class="chats-hdr-name">Lunox</div>
+            <div class="chats-hdr-slogan">Твоя переписка — только твоя</div>
+          </div>
+          <div class="chats-hdr-actions">
+            <button class="icon-btn" id="btn-hdr-contacts" type="button" title="Контакты" aria-label="Контакты"><svg class="tg-ic" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></button>
+            <button class="icon-btn" id="btn-hdr-create" type="button" title="Создать" aria-label="Создать"><svg class="tg-ic" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+            <button class="icon-btn" id="btn-hdr-menu" type="button" title="Меню" aria-label="Меню"><svg class="tg-ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>
+          </div>
+        </div>
         <div class="search-bar" id="chats-search-bar">
           <div class="search-bar-inner">
             <span class="search-icon"><svg class="tg-ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-            <input type="text" id="input-search-chats" placeholder="Поиск по чатам и сообщениям…" autocomplete="off">
+            <input type="text" id="input-search-chats" placeholder="Поиск по чатам..." autocomplete="off">
             <button class="search-clear-btn" id="btn-clear-search-chats" style="display:none;" title="Очистить"><svg class="tg-ic" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
           </div>
         </div>
         <div class="chats-search-note" id="chats-search-note" style="display:none;"></div>
+        <div class="chat-chips" id="chat-chips" role="tablist" aria-label="Фильтр чатов">
+          <button class="chat-chip active" type="button" data-filter="all"><svg class="tg-ic" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg><span>Все</span><span class="chip-count" data-count="all">0</span></button>
+          <button class="chat-chip" type="button" data-filter="direct"><svg class="tg-ic" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Личные</span><span class="chip-count" data-count="direct">0</span></button>
+          <button class="chat-chip" type="button" data-filter="group"><svg class="tg-ic" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Группы</span><span class="chip-count" data-count="group">0</span></button>
+          <button class="chat-chip" type="button" data-filter="channel"><svg class="tg-ic" viewBox="0 0 24 24"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg><span>Каналы</span><span class="chip-count" data-count="channel">0</span></button>
+        </div>
         <div class="chats-toolbar">
           <button class="icon-btn" id="btn-sort-chats" title="Сортировка"><svg class="tg-ic" viewBox="0 0 24 24"><path d="M7 17V3"/><path d="M4 6l3-3 3 3"/><path d="M17 7v14"/><path d="M20 18l-3 3-3-3"/></svg> <span id="sort-mode-label" style="font-size:11px;">по дате</span></button>
           <div style="flex:1;"></div>
@@ -1477,6 +1600,7 @@ window.lxApplyBlur(false);document.addEventListener("DOMContentLoaded",function(
       <!-- ---- ВКЛАДКА: КОНТАКТЫ ---- -->
       <div class="tab-panel" id="tab-contacts">
         <div class="search-bar">
+          <button class="icon-btn" id="btn-contacts-back" type="button" title="Назад" aria-label="Назад"><svg class="tg-ic" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
           <div class="search-bar-inner">
             <span class="search-icon"><svg class="tg-ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
             <input type="text" id="input-search-users" placeholder="Поиск по @username…" autocomplete="off">
@@ -1489,6 +1613,7 @@ window.lxApplyBlur(false);document.addEventListener("DOMContentLoaded",function(
       <!-- ---- ВКЛАДКА: ЗАМЕТКИ ---- -->
       <div class="tab-panel" id="tab-notes">
         <div class="search-bar">
+          <button class="icon-btn" id="btn-notes-back" type="button" title="Назад" aria-label="Назад"><svg class="tg-ic" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
           <div class="search-bar-inner">
             <span class="search-icon"><svg class="tg-ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
             <input type="text" id="input-search-notes" placeholder="Поиск по заметкам…" autocomplete="off">
@@ -1745,7 +1870,7 @@ window.lxApplyBlur(false);document.addEventListener("DOMContentLoaded",function(
               <div class="settings-row-label"><svg class="tg-ic" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg> Размер элементов</div>
               <div class="settings-row-value" id="density-value">Обычный</div>
             </div>
-            <div class="settings-row" id="row-nav-order">
+            <div class="settings-row" id="row-nav-order" style="display:none;">
               <div class="settings-row-label"><svg class="tg-ic" viewBox="0 0 24 24"><path d="M8 9l4-4 4 4"/><path d="M16 15l-4 4-4-4"/></svg> Порядок вкладок меню</div>
               <div class="settings-row-value"><svg class="tg-ic tg-ic-sm" viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18"/></svg></div>
             </div>
@@ -1981,25 +2106,22 @@ window.lxApplyBlur(false);document.addEventListener("DOMContentLoaded",function(
     </div>
 
     <nav class="bottom-nav" aria-label="Основная навигация">
+      <button class="nav-btn" id="nav-btn-admin" data-tab="tab-admin" style="display:none;">
+        <span class="nav-icon"><svg class="tg-ic" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span><span>Админ</span>
+        <span class="nav-badge" id="nav-badge-admin" style="display:none;">0</span>
+      </button>
       <button class="nav-btn active" id="nav-btn-chats" data-tab="tab-chats">
         <span class="nav-icon"><svg class="tg-ic" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></span><span data-i18n="navChats">Чаты</span>
         <span class="nav-badge" id="nav-badge-chats" style="display:none;">0</span>
       </button>
-      <button class="nav-btn" id="nav-btn-contacts" data-tab="tab-contacts">
-        <span class="nav-icon"><svg class="tg-ic" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span data-i18n="navContacts">Контакты</span>
-      </button>
-      <button class="nav-btn" id="nav-btn-notes" data-tab="tab-notes">
-        <span class="nav-icon"><svg class="tg-ic" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg></span><span data-i18n="navNotes">Заметки</span>
-      </button>
       <button class="nav-btn" id="nav-btn-ai" data-tab="tab-ai">
-        <span class="nav-icon"><svg class="tg-ic" viewBox="0 0 24 24"><rect x="4" y="8" width="16" height="12" rx="3"/><circle cx="9" cy="14" r="1.4" fill="currentColor" stroke="none"/><circle cx="15" cy="14" r="1.4" fill="currentColor" stroke="none"/><path d="M12 8V4"/><circle cx="12" cy="3" r="1.2" fill="currentColor" stroke="none"/><path d="M2 13v2"/><path d="M22 13v2"/></svg></span><span data-i18n="navAi">ИИ-помощник</span>
+        <span class="nav-icon"><svg class="tg-ic" viewBox="0 0 24 24"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></svg></span><span data-i18n="navAi">ИИ-помощник</span>
+      </button>
+      <button class="nav-btn" id="nav-btn-settings" data-tab="tab-settings">
+        <span class="nav-icon"><svg class="tg-ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span><span data-i18n="navSettings">Настройки</span>
       </button>
       <button class="nav-btn" id="nav-btn-profile" data-tab="tab-profile">
         <span class="nav-icon"><svg class="tg-ic" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span><span data-i18n="navProfile">Профиль</span>
-      </button>
-      <button class="nav-btn" id="nav-btn-admin" data-tab="tab-admin" style="display:none;">
-        <span class="nav-icon"><svg class="tg-ic" viewBox="0 0 24 24"><path d="M12 2 4 6v6c0 5 3.4 8.7 8 10 4.6-1.3 8-5 8-10V6l-8-4z"/><path d="M9.5 12l1.8 1.8L14.5 10"/></svg></span><span>Админ</span>
-        <span class="nav-badge" id="nav-badge-admin" style="display:none;">0</span>
       </button>
     </nav>
   </div>
@@ -4039,7 +4161,7 @@ const LS_KEY = 'lunox_settings_v1';
 const DEFAULT_LOCAL_SETTINGS = {
   theme: 'dark', lang: 'ru', fontSize: 'normal', notifications: true, sound: true, vibration: true,
   animations: true, glassEffect: 'medium', wallpaper: 'none', wallpaperGifUrl: '', density: 'normal', soundMelody: 'classic',
-  navOrder: ['tab-chats', 'tab-contacts', 'tab-notes', 'tab-ai', 'tab-profile'],
+  navOrder: ['tab-chats', 'tab-ai', 'tab-settings', 'tab-profile'],
   dnd: { active: false, until: null },
   autoTheme: { enabled: false, darkTime: '21:00', lightTime: '07:00' }
 };
@@ -4063,8 +4185,8 @@ function saveLocalSettings(s) {
 let localSettings = loadLocalSettings();
 
 const I18N = {
-  ru: { appName: 'Lunox', navChats: 'Чаты', navContacts: 'Контакты', navProfile: 'Профиль', navNotes: 'Заметки', navAi: 'ИИ-помощник' },
-  en: { appName: 'Lunox', navChats: 'Chats', navContacts: 'Contacts', navProfile: 'Profile', navNotes: 'Notes', navAi: 'AI Assistant' }
+  ru: { appName: 'Lunox', navChats: 'Чаты', navContacts: 'Контакты', navProfile: 'Профиль', navNotes: 'Заметки', navAi: 'ИИ-помощник', navSettings: 'Настройки' },
+  en: { appName: 'Lunox', navChats: 'Chats', navContacts: 'Contacts', navProfile: 'Profile', navNotes: 'Notes', navAi: 'AI Assistant', navSettings: 'Settings' }
 };
 function applyLanguage() {
   const dict = I18N[localSettings.lang] || I18N.ru;
@@ -4462,7 +4584,7 @@ function applyDensity() {
 function applyNavOrder() {
   const nav = document.querySelector('.bottom-nav');
   if (!nav) return;
-  const order = (localSettings.navOrder || DEFAULT_LOCAL_SETTINGS.navOrder).slice();
+  const order = ['tab-admin', 'tab-chats', 'tab-ai', 'tab-settings', 'tab-profile']; // порядок фиксирован (v39)
   // tab-admin участвует в порядке, только если кнопка сейчас видима (isCurrentUserAdmin === true —
   // см. updateAdminNavVisibility, которая выставляет display и сразу зовёт applyNavOrder заново).
   // Проверяем именно DOM-видимость, а не саму переменную isCurrentUserAdmin: этот код вызывается
@@ -6406,6 +6528,7 @@ function switchTab(tabId) {
   }
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === tabId));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tabId));
+  const _sm = document.getElementById('screen-main'); if (_sm) _sm.classList.toggle('on-chats', tabId === 'tab-chats');
   const chatsMenuBtn = document.getElementById('btn-chats-menu');
   if (chatsMenuBtn) chatsMenuBtn.style.display = (tabId === 'tab-chats') ? 'inline-flex' : 'none';
   if (tabId !== 'tab-chats') closeChatsSideMenu();
@@ -6419,7 +6542,11 @@ function switchTab(tabId) {
   }
 }
 document.querySelectorAll('.nav-btn').forEach(btn => {
-  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+  btn.addEventListener('click', () => {
+    // «Настройки» — это выезжающая панель, а не вкладка
+    if (btn.dataset.tab === 'tab-settings') { openSettingsScreen(); return; }
+    switchTab(btn.dataset.tab);
+  });
 });
 
 /* ================= МАГАЗИН РАМОК ================= */
@@ -7548,7 +7675,9 @@ const CHATS_SIDE_MENU_ICONS = {
   stats: '<svg class="tg-ic" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
   invites: '<svg class="tg-ic" viewBox="0 0 24 24"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>',
   promocodes: '<svg class="tg-ic" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8"/><path d="M16.5 8a2.5 2.5 0 0 0 0-5C13 3 12 8 12 8"/></svg>',
-  rules: '<svg class="tg-ic" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>'
+  rules: '<svg class="tg-ic" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+  favorites: '<svg class="tg-ic" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+  notes: '<svg class="tg-ic" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>'
 };
 function renderChatsSideMenuBody() {
   const isShopOwner = canOpenShop();
@@ -7558,6 +7687,7 @@ function renderChatsSideMenuBody() {
     isShopOwner ? { id: 'shop', icon: CHATS_SIDE_MENU_ICONS.shop, label: 'Магазин' } : null,
     { id: 'appearance', icon: CHATS_SIDE_MENU_ICONS.appearance, label: 'Оформление' },
     { id: 'notifications', icon: CHATS_SIDE_MENU_ICONS.notifications, label: 'Уведомления' },
+    { id: 'favorites', icon: CHATS_SIDE_MENU_ICONS.favorites, label: 'Избранное' },
     { id: 'friends', icon: CHATS_SIDE_MENU_ICONS.friends, label: 'Друзья', soon: true },
     { id: 'stats', icon: CHATS_SIDE_MENU_ICONS.stats, label: 'Статистика', soon: true },
     { id: 'invites', icon: CHATS_SIDE_MENU_ICONS.invites, label: 'Приглашения' },
@@ -7600,6 +7730,8 @@ function handleChatsSideMenuClick(id, isSoon) {
     openShopPage();
     return;
   }
+  if (id === 'notes') { openNotesScreen(); return; }
+  if (id === 'favorites') { const fb = document.getElementById('btn-open-favorites'); if (fb) fb.click(); return; }
   if (id === 'invites') { openInvitePage(); return; }
   if (id === 'promocodes') { openPromoPage(); return; }
   if (id === 'rules') { openLunoxRulesModal(); return; }
@@ -13643,6 +13775,24 @@ function updateGlobalUnreadBadge() {
   else { badge.style.display = 'none'; }
 }
 
+/* ===== v39: типы чатов, чипы-фильтры, галочки ===== */
+let chatsTypeFilter = 'all';
+const LX_IC_CHANNEL = '<svg class="tg-ic" viewBox="0 0 24 24"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>';
+const LX_IC_LOCK = '<svg class="tg-ic" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
+const LX_IC_TICK = '<svg class="tg-ic" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>';
+const LX_IC_TICK2 = '<svg class="tg-ic" viewBox="0 0 24 24"><path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/></svg>';
+function lxChatType(c) { return c.isChannel ? 'channel' : (c.isGroup ? 'group' : 'direct'); }
+function updateChatChips(cnt) {
+  const wrap = document.getElementById('chat-chips');
+  if (!wrap) return;
+  wrap.querySelectorAll('.chat-chip').forEach(ch => {
+    const f = ch.dataset.filter;
+    ch.classList.toggle('active', f === chatsTypeFilter);
+    ch.setAttribute('aria-selected', f === chatsTypeFilter ? 'true' : 'false');
+    const el = ch.querySelector('.chip-count');
+    if (el) el.textContent = String(cnt[f] || 0);
+  });
+}
 function renderChatsList() {
   const listEl = document.getElementById('chat-list-chats');
   if (!listEl) return;
@@ -13657,6 +13807,12 @@ function renderChatsList() {
   visible = chatsViewMode === 'archived'
     ? archivedChats
     : visible.filter(c => !(c.archivedBy || []).includes(currentUser.uid));
+
+  const _cnt = { all: visible.length, direct: 0, group: 0, channel: 0 };
+  visible.forEach(c => { _cnt[lxChatType(c)]++; });
+  if (chatsTypeFilter !== 'all' && !_cnt[chatsTypeFilter]) chatsTypeFilter = 'all';
+  updateChatChips(_cnt);
+  if (chatsTypeFilter !== 'all') visible = visible.filter(c => lxChatType(c) === chatsTypeFilter);
 
   if (searchQuery) {
     visible = visible.filter(c => {
@@ -13695,7 +13851,7 @@ function renderChatsList() {
   if (visible.length === 0) {
     listEl.innerHTML = searchQuery
       ? `<div class="empty-state"><div style="font-size:32px;opacity:.5;">${ICONS_JS.moon}</div><div>Ничего не найдено</div></div>`
-      : `<div class="empty-state"><div style="font-size:32px;opacity:.5;">${ICONS_JS.moon}</div><div>${chatsViewMode === 'archived' ? 'В архиве пусто' : 'Пока нет чатов. Найдите собеседника во вкладке «Контакты».'}</div></div>`;
+      : `<div class="empty-state"><div style="font-size:32px;opacity:.5;">${ICONS_JS.moon}</div><div>${chatsViewMode === 'archived' ? 'В архиве пусто' : 'Пока нет чатов. Найдите собеседника через кнопку контактов в шапке.'}</div></div>`;
     updateChatsSearchNoteAfterRender(0, searchQuery);
     return;
   }
@@ -13722,6 +13878,12 @@ function renderChatsList() {
       ? lxIc('chat', 13) + ' ' + highlightMatch(msgSnippet, searchQuery)
       : (searchQuery ? highlightMatch(chat.lastMessage || 'Нет сообщений', searchQuery) : escapeHtml(chat.lastMessage || 'Нет сообщений'));
 
+    let ticksHtml = '';
+    if (!isBotChat && chat.lastMessageSenderId === currentUser.uid) {
+      const others = (chat.members || []).filter(id => id !== currentUser.uid);
+      const read = others.length > 0 && others.every(id => chatUnreadFor(chat, id) === 0);
+      ticksHtml = `<span class="chat-ticks${read ? ' read' : ''}" title="${read ? 'Прочитано' : 'Доставлено'}">${read ? LX_IC_TICK2 : LX_IC_TICK}</span>`;
+    }
     const item = document.createElement('div');
     item.className = 'chat-item';
     item.innerHTML = `
@@ -13732,12 +13894,12 @@ function renderChatsList() {
       </div>
       <div class="chat-item-info">
         <div class="chat-item-top">
-          <div class="chat-item-name">${isGroup ? '<span class="chat-item-group-ic">' + ICONS_JS.users + '</span> ' : (isBotChat ? '🤖' : statusEmoji(otherData))} ${nameHtml}${regBadgeHtml}${usernameHtml}${roleBadgeHtml}</div>
+          <div class="chat-item-name">${chat.isChannel ? '<span class="chat-item-group-ic">' + LX_IC_CHANNEL + '</span> ' : (chat.isSecret ? '<span class="chat-item-group-ic">' + LX_IC_LOCK + '</span> ' : (isGroup ? '<span class="chat-item-group-ic">' + ICONS_JS.users + '</span> ' : (isBotChat ? '🤖' : statusEmoji(otherData))))} <span class="chat-item-name-text">${nameHtml}</span>${regBadgeHtml}${usernameHtml}${roleBadgeHtml}</div>
           <div class="chat-item-time">${chat.updatedAt ? formatTime(chat.updatedAt) : ''}</div>
         </div>
         <div class="chat-item-preview">
           <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${previewHtml}</span>
-          ${unread > 0 ? `<span class="unread-badge">${unread > 99 ? '99+' : unread}</span>` : ''}
+          ${ticksHtml}${unread > 0 ? `<span class="unread-badge">${unread > 99 ? '99+' : unread}</span>` : ''}
         </div>
       </div>
     `;
@@ -17418,7 +17580,7 @@ function renderSettingsScreen() {
       </div>`).join('');
     const extra = [];
     if (canOpenShop()) extra.push({ id: 'shop', label: 'Магазин' });
-    extra.push({ id: 'invites', label: 'Приглашения' }, { id: 'promocodes', label: 'Промокоды' });
+    extra.push({ id: 'notes', label: 'Мои заметки' }, { id: 'invites', label: 'Приглашения' }, { id: 'promocodes', label: 'Промокоды' });
     const extraHtml = extra.map(r => `
       <div class="settings-row settings-nav-row" data-settings-extra="${r.id}">
         <div class="settings-row-label">${CHATS_SIDE_MENU_ICONS[r.id]} ${r.label}</div>
@@ -17516,6 +17678,79 @@ document.getElementById('settings-screen-body').addEventListener('click', (e) =>
   window.addEventListener('scroll', () => {
     if (document.body.classList.contains('chat-open') && window.scrollY) window.scrollTo(0, 0);
   }, { passive: true });
+})();
+
+/* ================= v39: РЕДИЗАЙН ЭКРАНА ЧАТОВ (шапка, меню «создать», контакты, заметки) ================= */
+let contactsReturnTab = 'tab-chats';
+let notesReturnTab = 'tab-chats';
+function openContactsScreen(focusSearch) {
+  const cur = document.querySelector('.tab-panel.active');
+  contactsReturnTab = (cur && cur.id !== 'tab-contacts' && cur.id !== 'tab-notes') ? cur.id : 'tab-chats';
+  switchTab('tab-contacts');
+  if (focusSearch) setTimeout(() => { const i = document.getElementById('input-search-users'); if (i) i.focus(); }, 260);
+}
+function openNotesScreen() {
+  const cur = document.querySelector('.tab-panel.active');
+  notesReturnTab = (cur && cur.id !== 'tab-notes' && cur.id !== 'tab-contacts') ? cur.id : 'tab-chats';
+  closeSettingsScreen();
+  switchTab('tab-notes');
+}
+(function initChatsHeaderV39() {
+  const $ = (id) => document.getElementById(id);
+  // аватар: зеркалим существующий #topbar-avatar (его наполняют старые функции, включая рамку).
+  // Пока профиль не загрузился в нём лежит заглушка «?» — её не показываем: берём первую букву
+  // имени/e-mail (в фиолетовом круге), а если данных ещё нет — иконку пользователя.
+  const src = $('topbar-avatar'), dst = $('chats-hdr-avatar-inner');
+  const IC_USER = '<svg class="tg-ic" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+  function mirrorAvatar() {
+    if (!src || !dst) return;
+    dst.className = src.className;
+    const raw = (src.innerHTML || '').trim();
+    if (raw && raw !== '?') {
+      dst.innerHTML = raw;
+    } else {
+      const d = currentUserData || {};
+      const label = String(d.name || d.nickname || d.username || (currentUser && currentUser.email) || '').trim();
+      const ch = label ? Array.from(label)[0].toUpperCase() : '';
+      dst.innerHTML = d.avatarUrl ? avatarImgTag(d.avatarUrl, ch || 'U') : (ch ? escapeHtml(ch) : IC_USER);
+    }
+    Array.from(dst.attributes).forEach(a => { if (a.name !== 'id' && a.name !== 'class' && a.name !== 'style') dst.removeAttribute(a.name); });
+    Array.from(src.attributes).forEach(a => { if (a.name !== 'id' && a.name !== 'class' && a.name !== 'style') dst.setAttribute(a.name, a.value); });
+  }
+  if (src) { new MutationObserver(mirrorAvatar).observe(src, { childList: true, subtree: true, attributes: true }); mirrorAvatar(); }
+
+  $('chats-hdr-avatar').addEventListener('click', () => switchTab('tab-profile'));
+  $('btn-hdr-contacts').addEventListener('click', () => openContactsScreen(false));
+  $('btn-hdr-menu').addEventListener('click', () => toggleChatsSideMenu());
+  $('btn-contacts-back').addEventListener('click', () => switchTab(contactsReturnTab || 'tab-chats'));
+  $('btn-notes-back').addEventListener('click', () => { switchTab(notesReturnTab || 'tab-chats'); openSettingsScreen(); });
+
+  $('chat-chips').addEventListener('click', (e) => {
+    const chip = e.target.closest('.chat-chip');
+    if (!chip) return;
+    chatsTypeFilter = chip.dataset.filter || 'all';
+    renderChatsList();
+    chip.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+  });
+
+  const IC = {
+    group: '<svg class="tg-ic" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg>',
+    channel: LX_IC_CHANNEL,
+    secret: LX_IC_LOCK,
+    contact: '<svg class="tg-ic" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>'
+  };
+  $('btn-hdr-create').addEventListener('click', () => {
+    const row = (k, label) => `<div class="action-row" data-create="${k}"><span class="action-icon">${IC[k]}</span> ${label}</div>`;
+    openModal(`<div class="modal-title">Создать</div>${row('group', 'Новая группа')}${row('channel', 'Новый канал')}${row('secret', 'Секретный чат')}${row('contact', 'Новый контакт')}`);
+    modalSheetEl.querySelectorAll('[data-create]').forEach(r => r.addEventListener('click', () => {
+      const k = r.dataset.create;
+      closeModal();
+      if (k === 'group') setTimeout(() => $('btn-new-group').click(), 80);
+      else if (k === 'contact') setTimeout(() => openContactsScreen(true), 80);
+      else if (k === 'channel') showLunoxToast('Каналы скоро появятся');
+      else if (k === 'secret') showLunoxToast('Секретные чаты скоро появятся');
+    }));
+  });
 })();
 </script>
 </body>
