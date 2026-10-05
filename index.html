@@ -306,7 +306,7 @@ body.theme-light .gif-panel-search{background:#f5f5fb}
 .acc-row.acc-row:hover{transform:translateY(-1px);border-color:rgba(124,58,237,0.4);box-shadow:0 8px 18px rgba(0,0,0,0.24)}
 .acc-row.acc-row:active{transform:scale(0.985)}
 .acc-row.acc-row-active.acc-row-active{background:linear-gradient(135deg,rgba(124,58,237,0.20),rgba(79,70,229,0.10));border-color:rgba(124,58,237,0.55);box-shadow:0 6px 18px rgba(124,58,237,0.3)}
-.acc-avatar.acc-avatar{width:46px;height:46px;font-size:17px;box-shadow:0 2px 6px rgba(0,0,0,0.3)}
+.acc-avatar.acc-avatar{width:52px;height:52px;font-size:19px;box-shadow:0 2px 6px rgba(0,0,0,0.3)}
 .acc-row-active .acc-avatar.acc-avatar{box-shadow:0 0 0 2px var(--bg-panel-2),0 0 0 4px var(--violet-bright)}
 .acc-name.acc-name{font-size:14.5px;font-weight:700}
 .acc-email.acc-email{font-size:12px;margin-top:2px}
@@ -842,7 +842,8 @@ button:active,.btn-primary:active,.btn-secondary:active,.shop-tab:active,.suppor
 /* Шапка: круглые кнопки */
 .topbar-lunox .icon-btn,.chat-header .icon-btn,.shop-page-header .icon-btn,.chat-header .back-btn{width:40px;height:40px;padding:0;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:var(--glass);border:var(--glass-brd);color:var(--violet-bright);overflow:hidden}
 .topbar-lunox .icon-btn svg,.chat-header .icon-btn svg,.chat-header .back-btn svg{width:18px;height:18px;flex-shrink:0}
-#topbar-avatar-wrap,#topbar-avatar{width:40px !important;height:40px !important}
+#topbar-avatar-wrap,#topbar-avatar{width:52px !important;height:52px !important}
+#topbar-avatar{font-size:20px !important}
 .icon-btn:hover{background:rgba(139,92,246,.22)}
 /* Нижняя навигация */
 .bottom-nav{background:rgba(20,12,36,calc(var(--glass-opacity,0.6) + 0.1)) !important;backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);border:var(--glass-brd) !important;border-bottom:none !important;border-radius:24px 24px 0 0 !important}
@@ -876,7 +877,7 @@ button:active,.btn-primary:active,.btn-secondary:active,.shop-tab:active,.suppor
 .chats-side-menu-overlay.active .chats-side-menu-panel{transform:translateX(0) !important}
 .chats-side-menu-header{background:transparent !important;border-bottom:1px solid rgba(139,92,246,.12) !important;padding:20px 16px !important}
 .csm-user{display:flex;align-items:center;gap:12px;min-width:0}
-.csm-user .avatar{width:48px;height:48px;flex-shrink:0;border:2px solid rgba(167,139,250,.5)}
+.csm-user .avatar{width:52px;height:52px;flex-shrink:0;border:2px solid rgba(167,139,250,.5)}
 .csm-user-name{font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .csm-user-sub{font-size:12px;color:var(--gray)}
 .chats-side-menu-body>*{border-radius:16px !important;background:rgba(139,92,246,.06);margin-bottom:6px;transition:background .3s var(--ease),transform .15s ease}
@@ -992,9 +993,9 @@ button:active:not(:disabled),a:active,[role=button]:active,.btn:active,.tab:acti
 </style>
 
 <style id="lunox-v29-spec-fixes-css">
-/* ===== v29: чаты 48px, профиль 96px ===== */
-.chat-list .chat-item .avatar,.chat-list .chat-item .avatar-wrap{width:48px !important;height:48px !important}
-.chat-list .chat-item .avatar{font-size:17px !important}
+/* ===== v29: профиль 96px; build43: аватар в списках чатов/контактов — 52px (единый размер) ===== */
+.chat-list .chat-item .avatar,.chat-list .chat-item .avatar-wrap{width:52px !important;height:52px !important}
+.chat-list .chat-item .avatar{font-size:20px !important}
 .profile-avatar-hero{width:96px !important;height:96px !important}
 .profile-avatar-hero .avatar{font-size:32px !important}
 /* тап везде унифицирован на 0.96/150ms общим правилом из lunox-tap-css — точечных 0.97 больше нет */
@@ -1214,15 +1215,15 @@ body:not(.theme-light) .lunox-toast{
 .lx-range-hint{flex:1 1 100%;font-size:11.5px;color:var(--gray)}
 </style>
 <style id="lunox-v39-chats-css">
-/* ===== build42: экран чатов — шапка, поиск, чипы, строки; нижнее меню на 4–5 вкладок ===== */
+/* ===== build43: экран чатов — шапка, поиск, чипы, строки; нижнее меню на 4–5 вкладок ===== */
 :root{--nav-height:60px}
 #screen-main.on-chats > .topbar-lunox{display:none}
 
 /* --- шапка: аватар | Lunox + слоган | [контакты][создать][меню] --- */
 .chats-hdr{display:flex;align-items:center;gap:12px;padding:calc(env(safe-area-inset-top,0px) + 12px) 16px 10px;flex-shrink:0}
-.chats-hdr-avatar{flex:0 0 auto;width:46px;height:46px;padding:2px;border-radius:50%;border:0;background:conic-gradient(from 200deg,#c4b5fd,#7c3aed 35%,rgba(124,58,237,.35) 65%,#a78bfa);cursor:pointer;overflow:hidden;display:block;box-shadow:0 0 16px rgba(124,58,237,.55),0 0 0 1px rgba(167,139,250,.25)}
-#chats-hdr-avatar-inner{width:100% !important;height:100% !important;border-radius:50%;border:1.5px solid var(--bg-deep) !important;box-sizing:border-box;overflow:hidden;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center}
-#chats-hdr-avatar-inner svg{width:22px;height:22px}
+.chats-hdr-avatar{flex:0 0 auto;width:52px;height:52px;padding:2px;border-radius:50%;border:0;background:conic-gradient(from 200deg,#c4b5fd,#7c3aed 35%,rgba(124,58,237,.35) 65%,#a78bfa);cursor:pointer;overflow:hidden;display:block;box-shadow:0 0 16px rgba(124,58,237,.55),0 0 0 1px rgba(167,139,250,.25)}
+#chats-hdr-avatar-inner{width:100% !important;height:100% !important;border-radius:50%;border:1.5px solid var(--bg-deep) !important;box-sizing:border-box;overflow:hidden;font-size:20px;font-weight:700;display:flex;align-items:center;justify-content:center}
+#chats-hdr-avatar-inner svg{width:24px;height:24px}
 .chats-hdr-title{flex:1;min-width:0}
 .chats-hdr-name{font-family:Inter,system-ui,sans-serif;font-weight:800;font-size:22px;line-height:1.15;letter-spacing:-.01em;color:var(--text-main)}
 /* слоган: 11px, #8b8b94, при нехватке места переносится на 2 строки (не обрезается) */
@@ -1233,6 +1234,24 @@ body:not(.theme-light) .lunox-toast{
 .chats-hdr .icon-btn svg{width:18px;height:18px}
 .chats-hdr .icon-btn:focus-visible,.chats-hdr-avatar:focus-visible{outline:2px solid var(--violet-bright);outline-offset:2px}
 @media (max-width:360px){.chats-hdr{gap:8px;padding-left:12px;padding-right:12px}.chats-hdr-actions{gap:6px}.chats-hdr .icon-btn{width:36px;height:36px}}
+
+/* --- build43: шапка вкладок под аватар 52px; окно «Аккаунты» ниже аватара --- */
+.topbar-lunox{padding:10px 14px 8px}
+.acc-switcher-panel{top:calc(env(safe-area-inset-top,0px) + 72px)}
+
+/* --- build43: Настройки — полноэкранный экран (slide справа налево), поверх всего, нижнее меню скрыто --- */
+html body #screen-settings.screen.settings-drawer{position:fixed;inset:0;top:0;right:0;bottom:0;left:0;width:100%;max-width:none;height:100vh;height:100dvh;z-index:1000;border:0 !important;border-radius:0;box-shadow:none !important;-webkit-backdrop-filter:none;backdrop-filter:none;transform:translateX(100%);transition:transform .35s cubic-bezier(.16,1,.3,1),visibility 0s linear .35s;will-change:transform}
+html body #screen-settings.screen.settings-drawer.active{transform:translateX(0);transition:transform .35s cubic-bezier(.16,1,.3,1),visibility 0s}
+html body:not(.theme-light) #screen-settings.screen.settings-drawer{background:#1a0f2e !important}
+html body.theme-light #screen-settings.screen.settings-drawer{background:var(--bg-deep) !important}
+#settings-backdrop{display:none !important}
+body.settings-drawer-open .bottom-nav{visibility:visible !important;z-index:1005 !important}
+body.settings-drawer-open #screen-settings .settings-screen-body{padding-bottom:calc(var(--nav-height) + var(--nav-safe-bottom) + 40px)}
+#screen-settings.settings-root #settings-back{display:none !important}
+/* окна, которые открываются из настроек, должны быть выше самого экрана (z=1000); порядок между ними сохранён */
+.modal-overlay{z-index:1010}
+.support-chat-backdrop{z-index:1070}
+@media (prefers-reduced-motion:reduce){html body #screen-settings.screen.settings-drawer{transition:none}}
 
 /* --- поиск --- */
 #chats-search-bar{padding:2px 16px 10px;border:0 !important;background:transparent !important;backdrop-filter:none;-webkit-backdrop-filter:none}
@@ -1554,7 +1573,7 @@ window.lxApplyBlur(false);document.addEventListener("DOMContentLoaded",function(
       <!-- ---- ВКЛАДКА: ЧАТЫ ---- -->
       <div class="tab-panel active" id="tab-chats">
         <div class="chats-hdr" id="chats-hdr">
-          <button class="chats-hdr-avatar" id="chats-hdr-avatar" type="button" title="Профиль" aria-label="Профиль"><div class="avatar" id="chats-hdr-avatar-inner"><svg class="tg-ic" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div></button>
+          <button class="chats-hdr-avatar" id="chats-hdr-avatar" type="button" title="Аккаунты" aria-label="Аккаунты"><div class="avatar" id="chats-hdr-avatar-inner"><svg class="tg-ic" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div></button>
           <div class="chats-hdr-title">
             <div class="chats-hdr-name">Lunox</div>
             <div class="chats-hdr-slogan">Твоя переписка — только твоя</div>
@@ -6428,7 +6447,7 @@ document.getElementById('acc-switcher-overlay').addEventListener('click', (e) =>
 });
 
 function switchToSavedAccount(uid, appName) {
-  if (currentUser && uid === currentUser.uid) { closeAccountSwitcher(); return; }
+  if (currentUser && uid === currentUser.uid) { closeAccountSwitcher(); switchTab('tab-profile'); return; }   // активный аккаунт → Профиль
   setStoredActiveAppName(appName || null);
   localStorage.removeItem(LUNOX_PENDING_PREV_KEY);
   location.reload();
@@ -6544,7 +6563,8 @@ function switchTab(tabId) {
 document.querySelectorAll('.nav-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     // «Настройки» — это выезжающая панель, а не вкладка
-    if (btn.dataset.tab === 'tab-settings') { openSettingsScreen(); return; }
+    if (btn.dataset.tab === 'tab-settings') { if (!document.body.classList.contains('settings-drawer-open')) openSettingsScreen(); return; }
+    if (document.body.classList.contains('settings-drawer-open')) closeSettingsScreen();
     switchTab(btn.dataset.tab);
   });
 });
@@ -17571,6 +17591,8 @@ function renderSettingsScreen() {
   const title = document.getElementById('settings-title');
   if (!body || !title) return;
   const prevScroll = body.scrollTop;
+  const _scr = document.getElementById('screen-settings');
+  if (_scr) _scr.classList.toggle('settings-root', !settingsSection);
   if (!settingsSection) {
     title.textContent = 'Настройки';
     const main = SETTINGS_SECTIONS.map(sec => `
@@ -17619,6 +17641,7 @@ function openSettingsScreen() {
   if (scr) scr.classList.add('active');
   if (bd) bd.classList.add('active');
   document.body.classList.add('settings-drawer-open');
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === 'tab-settings'));
   const body = document.getElementById('settings-screen-body');
   if (body) body.scrollTop = 0;
 }
@@ -17629,6 +17652,9 @@ function closeSettingsScreen() {
   if (scr) scr.classList.remove('active');
   if (bd) bd.classList.remove('active');
   document.body.classList.remove('settings-drawer-open');
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  const _at = document.querySelector('.tab-panel.active');
+  if (_at) document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === _at.id));
   settingsChatWasActive = false;
 }
 // Закрытие панели настроек тапом по фону
@@ -17719,7 +17745,7 @@ function openNotesScreen() {
   }
   if (src) { new MutationObserver(mirrorAvatar).observe(src, { childList: true, subtree: true, attributes: true }); mirrorAvatar(); }
 
-  $('chats-hdr-avatar').addEventListener('click', () => switchTab('tab-profile'));
+  $('chats-hdr-avatar').addEventListener('click', () => openAccountSwitcher());   // как в TG: окно «Аккаунты»
   $('btn-hdr-contacts').addEventListener('click', () => openContactsScreen(false));
   $('btn-hdr-menu').addEventListener('click', () => toggleChatsSideMenu());
   $('btn-contacts-back').addEventListener('click', () => switchTab(contactsReturnTab || 'tab-chats'));
