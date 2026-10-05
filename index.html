@@ -1240,8 +1240,8 @@ body:not(.theme-light) .lunox-toast{
 .acc-switcher-panel{top:calc(env(safe-area-inset-top,0px) + 72px)}
 
 /* --- build43: Настройки — полноэкранный экран (slide справа налево), поверх всего, нижнее меню скрыто --- */
-html body #screen-settings.screen.settings-drawer{position:fixed;inset:0;top:0;right:0;bottom:0;left:0;width:100%;max-width:none;height:100vh;height:100dvh;z-index:1000;border:0 !important;border-radius:0;box-shadow:none !important;-webkit-backdrop-filter:none;backdrop-filter:none;transform:translateX(100%);transition:transform .35s cubic-bezier(.16,1,.3,1),visibility 0s linear .35s;will-change:transform}
-html body #screen-settings.screen.settings-drawer.active{transform:translateX(0);transition:transform .35s cubic-bezier(.16,1,.3,1),visibility 0s}
+html body #screen-settings.screen.settings-drawer{position:fixed;inset:0;top:0;right:0;bottom:0;left:0;width:100%;max-width:none;height:100vh;height:100dvh;z-index:1000;border:0 !important;border-radius:0;box-shadow:none !important;-webkit-backdrop-filter:none;backdrop-filter:none;transform:none;transition:none;will-change:auto}
+html body #screen-settings.screen.settings-drawer.active{transform:none;transition:none;animation:tabSlide .25s var(--ease) !important}
 html body:not(.theme-light) #screen-settings.screen.settings-drawer{background:#1a0f2e !important}
 html body.theme-light #screen-settings.screen.settings-drawer{background:var(--bg-deep) !important}
 #settings-backdrop{display:none !important}
