@@ -5,6 +5,12 @@
   publish = "."
   functions = "netlify/functions"
 
+[[redirects]]
+  # build46: ссылка входа по email (sendSignInLinkToEmail) ведёт на /finishSignUp — отдаём приложение.
+  from = "/finishSignUp"
+  to = "/index.html"
+  status = 200
+
 
 
 [[headers]]

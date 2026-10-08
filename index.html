@@ -1337,6 +1337,87 @@ body.ui-font-small .bottom-nav .nav-btn,body.ui-font-large .bottom-nav .nav-btn{
   .tab-panel{bottom:calc(var(--nav-height) + var(--nav-gap) + var(--nav-safe-bottom) + 8px)}
 }
 </style>
+<style id="lunox-build46-css">
+/* build46: вход по ссылке из письма — glass-панель, collapse + галочка */
+#screen-auth.alp-on{background:radial-gradient(600px 400px at 50% 0,rgba(124,58,237,.24),transparent 70%),#1a0f2e}
+body.theme-light #screen-auth.alp-on{background:radial-gradient(600px 400px at 50% 0,rgba(124,58,237,.14),transparent 70%),var(--bg-deep)}
+.auth-link-or{display:flex;align-items:center;gap:10px;margin:14px 0 12px;color:var(--text-dim);font-size:12px}
+.auth-link-or::before,.auth-link-or::after{content:"";flex:1;height:1px;background:var(--border)}
+.auth-link-entry{display:flex;align-items:center;justify-content:center;gap:8px}
+.auth-link-entry svg{width:17px;height:17px;flex-shrink:0;color:var(--violet-bright)}
+.auth-card.link-mode #auth-login-form,.auth-card.link-mode .auth-switch{display:none !important}
+.alp-panel{display:none}
+.auth-card.link-mode .alp-panel{display:block;animation:alpIn .35s var(--ease)}
+@keyframes alpIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.alp-glass{position:relative;padding:22px 18px 20px;border-radius:16px;text-align:center;background:linear-gradient(160deg,rgba(255,255,255,.08),rgba(255,255,255,.025));border:1px solid rgba(167,139,250,.24);box-shadow:0 12px 40px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.08);-webkit-backdrop-filter:blur(18px) saturate(150%);backdrop-filter:blur(18px) saturate(150%)}
+body.theme-light .alp-glass{background:rgba(255,255,255,.7);box-shadow:0 12px 40px rgba(60,30,120,.12),inset 0 1px 0 rgba(255,255,255,.8)}
+.alp-title{margin:0 0 6px;font-size:18px;font-weight:700;letter-spacing:-.01em;color:var(--text-main)}
+.alp-text{margin:0 0 16px;font-size:13px;line-height:1.5;color:var(--text-dim)}
+.alp-text b{color:var(--text-main);font-weight:600;overflow-wrap:anywhere}
+.alp-glass .field{text-align:left;margin-bottom:14px}
+.alp-hint{margin:2px 0 14px;font-size:11.5px;line-height:1.45;color:var(--text-dim)}
+.alp-actions{display:flex;justify-content:center;margin-top:14px}
+.alp-glass .btn-secondary:disabled{opacity:.55;cursor:default}
+/* build47: OTP-анимация по видео. T=0 -> класс .is-play; --o = начало финала */
+.alp-stage{--o:0ms;--e:cubic-bezier(.19,1,.22,1);position:relative;height:100px;width:100%;max-width:280px;margin:0 auto 10px}
+.alp-stage.is-play{--o:4223ms}
+.alp-tile{position:absolute;left:50%;top:18px;width:52px;height:63px;margin-left:-26px;border-radius:14px;background:linear-gradient(160deg,rgba(167,139,250,.30),rgba(124,58,237,.12));border:1px solid rgba(167,139,250,.34);box-shadow:0 8px 20px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.14);transform-origin:50% 50%;transform:translate(var(--x,0),0);opacity:0;will-change:transform,opacity}
+.alp-win{position:absolute;inset:-1px;border-radius:14px;border:1.5px solid #a78bfa;box-shadow:0 0 0 3px rgba(124,58,237,.22),0 0 18px rgba(124,58,237,.5);opacity:0;pointer-events:none}
+.alp-dot{position:absolute;left:50%;top:50%;width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border-radius:50%;background:#ddd6fe;box-shadow:0 0 8px rgba(167,139,250,.8);opacity:0}
+.alp-spark{position:absolute;left:-1px;top:-1px;width:52px;height:63px;overflow:visible;pointer-events:none}
+.alp-spark path{fill:none;stroke:#c4b5fd;stroke-width:1.5;stroke-linecap:round;stroke-dasharray:.2 .8;opacity:0}
+.alp-ring,.alp-check,.alp-rays{position:absolute;pointer-events:none;overflow:visible}
+.alp-ring{left:50%;top:10px;width:68px;height:79px;margin-left:-34px}
+.alp-ring path{fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.alp-ra{stroke:#8b5cf6;stroke-dasharray:.2 .8;stroke-dashoffset:-.16;opacity:0}
+.alp-rb{stroke:#a78bfa;stroke-dasharray:1 2;stroke-dashoffset:1;filter:drop-shadow(0 0 5px rgba(124,58,237,.9))}
+.alp-echo{position:absolute;left:50%;top:18px;width:52px;height:63px;margin-left:-26px;border-radius:14px;border:1.5px solid rgba(167,139,250,.7);opacity:0;pointer-events:none}
+.alp-rays{left:50%;top:-20.5px;width:140px;height:140px;margin-left:-70px;opacity:0}
+.alp-rays line{stroke:#c4b5fd;stroke-width:1.5;stroke-linecap:round}
+.alp-check{left:50%;top:38.5px;width:22px;height:22px;margin-left:-11px}
+.alp-check path{fill:none;stroke:#c4b5fd;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1 2;stroke-dashoffset:1;filter:drop-shadow(0 0 6px rgba(124,58,237,.9))}
+.alp-cdot{fill:#c4b5fd;opacity:0;transform-box:fill-box;transform-origin:center}
+@keyframes alpIn{from{opacity:0}to{opacity:1}}
+@keyframes alpOut{to{opacity:0}}
+@keyframes alpWin{0%{opacity:0;transform:scale(.97)}14%,86%{opacity:1;transform:scale(1.03)}100%{opacity:0;transform:scale(1.03)}}
+@keyframes alpDot{from{opacity:0;filter:blur(4px);transform:scale(.5)}to{opacity:1;filter:blur(0);transform:scale(1)}}
+@keyframes alpDotOut{to{opacity:0}}
+@keyframes alpSpark{0%{opacity:1;stroke-dashoffset:0}80%{opacity:1}100%{opacity:0;stroke-dashoffset:-1}}
+@keyframes alpFan{from{transform:translate(var(--x),0) rotate(0deg);z-index:var(--z)}to{transform:translate(var(--fx),0) rotate(var(--a));z-index:var(--z)}}
+@keyframes alpCol{from{transform:translate(var(--fx),0) rotate(var(--a));z-index:var(--z)}99%{z-index:var(--z)}to{transform:translate(0,0) rotate(0deg);z-index:calc(var(--i) + 1)}}
+@keyframes alpArc{0%{opacity:0;stroke-dashoffset:-.16}35%{opacity:1}100%{opacity:1;stroke-dashoffset:-.4}}
+@keyframes alpSpin{from{stroke-dashoffset:0}to{stroke-dashoffset:-1}}
+@keyframes alpDraw{to{stroke-dashoffset:0}}
+@keyframes alpPop{0%{scale:1}45%{scale:1.12}100%{scale:1}}
+@keyframes alpGlow{to{border-color:rgba(167,139,250,.8);box-shadow:0 0 0 1px rgba(167,139,250,.35),0 0 28px rgba(124,58,237,.6),inset 0 1px 0 rgba(255,255,255,.14)}}
+@keyframes alpEcho{0%{opacity:.6;transform:scale(1)}100%{opacity:0;transform:scale(1.28)}}
+@keyframes alpRays{0%{opacity:0;transform:scale(.82)}25%{opacity:.9}100%{opacity:0;transform:scale(1.2)}}
+@keyframes alpCdot{0%{opacity:0;transform:scale(.3)}100%{opacity:1;transform:scale(1)}}
+/* ряд -> focus -> ввод -> веер -> collapse */
+.is-play .alp-tile{animation:alpIn 470ms calc(var(--i)*50ms) cubic-bezier(.2,.7,.2,1) forwards,alpFan 560ms calc(2133ms + var(--s)*45ms) var(--e) forwards,alpCol 300ms 2923ms var(--e) forwards}
+.is-play .alp-tile:nth-child(-n+3){animation:alpIn 470ms calc(var(--i)*50ms) cubic-bezier(.2,.7,.2,1) forwards,alpFan 560ms calc(2133ms + var(--s)*45ms) var(--e) forwards,alpCol 300ms 2923ms var(--e) forwards,alpOut 100ms 3643ms linear forwards}
+.is-play .alp-tile:nth-child(4){animation:alpIn 470ms 150ms cubic-bezier(.2,.7,.2,1) forwards,alpFan 560ms 2133ms var(--e) forwards,alpCol 300ms 2923ms var(--e) forwards,alpGlow 300ms calc(var(--o) + 230ms) ease-out forwards,alpPop 170ms calc(var(--o) + 230ms) ease-in-out}
+.is-play .alp-win{animation:alpWin calc(var(--k) - var(--f)) var(--f) ease-out forwards}
+.is-play .alp-dot{animation:alpDot 220ms var(--k) ease-out forwards,alpDotOut 160ms 2923ms linear forwards}
+.is-play .alp-spark path{animation:alpSpark 320ms var(--k) linear forwards}
+.is-play .alp-ra{animation:alpArc 200ms 3818ms cubic-bezier(.45,0,.15,1) forwards,alpOutA 150ms calc(var(--o) + 240ms) linear forwards}
+@keyframes alpOutA{to{opacity:0}}
+/* загрузка (проверка ссылки) */
+.is-loading .alp-tile:nth-child(4),.is-success .alp-tile:nth-child(4),.is-done .alp-tile:nth-child(4){opacity:1;transform:none;transform-origin:50% 50%}
+.is-loading .alp-ra{opacity:1;animation:alpSpin 1s linear infinite}
+/* финал: кольцо замыкается, burst, галочка */
+.is-success .alp-tile:nth-child(4){animation:alpGlow 300ms 230ms ease-out forwards,alpPop 170ms 230ms ease-in-out}
+.is-play .alp-rb,.is-success .alp-rb{animation:alpDraw 240ms var(--o) cubic-bezier(.45,0,.15,1) forwards}
+.is-play .alp-echo,.is-success .alp-echo{animation:alpEcho 270ms calc(var(--o) + 230ms) ease-out forwards}
+.is-play .alp-rays,.is-success .alp-rays{animation:alpRays 270ms calc(var(--o) + 230ms) ease-out forwards}
+.is-play .alp-cdot,.is-success .alp-cdot{animation:alpCdot 150ms calc(var(--o) + 300ms) ease-out forwards}
+.is-play .alp-check path,.is-success .alp-check path{animation:alpDraw 250ms calc(var(--o) + 450ms) cubic-bezier(.65,0,.35,1) forwards}
+/* итог без анимации (prefers-reduced-motion и после завершения) */
+.is-done .alp-tile:nth-child(4){border-color:rgba(167,139,250,.8);box-shadow:0 0 0 1px rgba(167,139,250,.35),0 0 28px rgba(124,58,237,.6),inset 0 1px 0 rgba(255,255,255,.14)}
+.is-done .alp-rb,.is-done .alp-check path{stroke-dashoffset:0}
+.is-done .alp-cdot{opacity:1}
+@media (prefers-reduced-motion:reduce){.auth-card.link-mode .alp-panel{animation:none}.is-loading .alp-ra{animation:none}}
+</style>
 </head>
 <body>
 
@@ -1462,6 +1543,38 @@ window.lxApplyBlur(false);document.addEventListener("DOMContentLoaded",function(
           <a class="link-inline" id="auth-forgot-link">Забыли пароль?</a>
         </div>
         <button class="btn-primary" id="btn-login-submit">Войти</button>
+        <div class="auth-link-or"><span>или</span></div>
+        <button type="button" class="btn-secondary auth-link-entry" id="btn-login-by-link"><svg class="tg-ic" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg><span>Войти по ссылке из письма</span></button>
+      </div>
+
+      <!-- ===== build46: ВХОД ПО ССЫЛКЕ ИЗ ПИСЬМА ===== -->
+      <div id="auth-link-panel" class="alp-panel">
+        <div class="alp-step" id="alp-step-email">
+          <div class="alp-glass">
+            <h2 class="alp-title" id="alp-email-title">Вход по ссылке</h2>
+            <p class="alp-text" id="alp-email-text">Укажите email — мы отправим ссылку для входа без пароля.</p>
+            <div class="field">
+              <label for="alp-email">Email</label>
+              <input type="email" id="alp-email" placeholder="you@example.com" autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false">
+            </div>
+            <button class="btn-primary" id="alp-continue" type="button">Продолжить</button>
+            <div class="alp-actions"><a class="link-inline" id="alp-back">Войти с паролем</a></div>
+          </div>
+        </div>
+        <div class="alp-step" id="alp-step-sent" style="display:none;">
+          <div class="alp-glass">
+            <div class="alp-stage" id="alp-stage" aria-hidden="true">
+              <span class="alp-tile" style="--i:0;--s:0;--z:1;--x:-93px;--fx:-40px;--a:-12deg;--f:350ms;--k:700ms"><i class="alp-win"></i><svg class="alp-spark" viewBox="0 0 52 63"><path pathLength="1" d="M26 1H38A13 13 0 0 1 51 14V49A13 13 0 0 1 38 62H14A13 13 0 0 1 1 49V14A13 13 0 0 1 14 1Z"/></svg><i class="alp-dot"></i></span><span class="alp-tile" style="--i:1;--s:1;--z:2;--x:-31px;--fx:-15px;--a:-4deg;--f:700ms;--k:1150ms"><i class="alp-win"></i><svg class="alp-spark" viewBox="0 0 52 63"><path pathLength="1" d="M26 1H38A13 13 0 0 1 51 14V49A13 13 0 0 1 38 62H14A13 13 0 0 1 1 49V14A13 13 0 0 1 14 1Z"/></svg><i class="alp-dot"></i></span><span class="alp-tile" style="--i:2;--s:1;--z:2;--x:31px;--fx:15px;--a:4deg;--f:1150ms;--k:1510ms"><i class="alp-win"></i><svg class="alp-spark" viewBox="0 0 52 63"><path pathLength="1" d="M26 1H38A13 13 0 0 1 51 14V49A13 13 0 0 1 38 62H14A13 13 0 0 1 1 49V14A13 13 0 0 1 14 1Z"/></svg><i class="alp-dot"></i></span><span class="alp-tile" style="--i:3;--s:0;--z:1;--x:93px;--fx:40px;--a:12deg;--f:1510ms;--k:1913ms"><i class="alp-win"></i><svg class="alp-spark" viewBox="0 0 52 63"><path pathLength="1" d="M26 1H38A13 13 0 0 1 51 14V49A13 13 0 0 1 38 62H14A13 13 0 0 1 1 49V14A13 13 0 0 1 14 1Z"/></svg><i class="alp-dot"></i></span><svg class="alp-ring" viewBox="0 0 68 79"><path class="alp-ra" pathLength="1" d="M34 75H22A18 18 0 0 1 4 57V22A18 18 0 0 1 22 4H46A18 18 0 0 1 64 22V57A18 18 0 0 1 46 75Z"/><path class="alp-rb" pathLength="1" d="M34 4H46A18 18 0 0 1 64 22V57A18 18 0 0 1 46 75H22A18 18 0 0 1 4 57V22A18 18 0 0 1 22 4Z"/></svg><span class="alp-echo"></span><svg class="alp-rays" viewBox="-70 -70 140 140"><line x1="0" y1="-44" x2="0" y2="-52" transform="rotate(0)"/><line x1="0" y1="-44" x2="0" y2="-52" transform="rotate(22.5)"/><line x1="0" y1="-44" x2="0" y2="-52" transform="rotate(45)"/><line x1="0" y1="-44" x2="0" y2="-52" transform="rotate(67.5)"/><line x1="0" y1="-44" x2="0" y2="-52" transform="rotate(90)"/><line x1="0" y1="-44" x2="0" y2="-52" transform="rotate(112.5)"/><line x1="0" y1="-44" x2="0" y2="-52" transform="rotate(135)"/><line x1="0" y1="-44" x2="0" y2="-52" transform="rotate(157.5)"/><line x1="0" y1="-44" x2="0" y2="-52" transform="rotate(180)"/><line x1="0" y1="-44" x2="0" y2="-52" transform="rotate(202.5)"/><line x1="0" y1="-44" x2="0" y2="-52" transform="rotate(225)"/><line x1="0" y1="-44" x2="0" y2="-52" transform="rotate(247.5)"/><line x1="0" y1="-44" x2="0" y2="-52" transform="rotate(270)"/><line x1="0" y1="-44" x2="0" y2="-52" transform="rotate(292.5)"/><line x1="0" y1="-44" x2="0" y2="-52" transform="rotate(315)"/><line x1="0" y1="-44" x2="0" y2="-52" transform="rotate(337.5)"/></svg><svg class="alp-check" viewBox="0 0 24 24"><path pathLength="1" d="M20 6L9 17l-5-5"/><circle class="alp-cdot" cx="20" cy="6" r="1.4"/></svg>
+            </div>
+            <h2 class="alp-title" id="alp-sent-title" aria-live="polite">Проверьте почту</h2>
+            <p class="alp-text" id="alp-sent-text"></p>
+            <div id="alp-sent-extra">
+              <p class="alp-hint">Письмо не пришло? Проверьте папку «Спам».</p>
+              <button class="btn-secondary" id="alp-resend" type="button">Отправить снова</button>
+              <div class="alp-actions"><a class="link-inline" id="alp-change">Изменить email</a></div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- ===== РЕГИСТРАЦИЯ: 5 ШАГОВ ===== -->
@@ -8848,6 +8961,270 @@ document.getElementById('btn-login-submit').addEventListener('click', async () =
   }
 });
 
+/* ===== build46: ВХОД ПО ССЫЛКЕ ИЗ ПИСЬМА (sendSignInLinkToEmail / isSignInWithEmailLink / signInWithEmailLink) ===== */
+const EMAIL_LINK_URL = 'https://lunoxapp.online/finishSignUp';
+const EMAIL_LINK_STORAGE_KEY = 'emailForSignIn';           // email, на который отправили ссылку (стандарт Firebase)
+const EMAIL_LINK_SENT_KEY = 'lunoxEmailLinkSentAt';        // {email, at} — для таймера «Отправить снова»
+const EMAIL_LINK_COOLDOWN_SEC = 60;
+let emailLinkInProgress = false;   // пока завершается вход по ссылке, onAuthStateChanged не запускает приложение
+let alpMode = 'send';              // 'send' — запрос ссылки, 'confirm' — подтверждение email после перехода по ссылке
+let alpCurrentEmail = '';
+let alpAnimToken = 0;
+let alpCooldownTimer = null;
+
+const alpEl = (id) => document.getElementById(id);
+const alpSleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const alpReduced = () => !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+const alpIsEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v);
+function alpLsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function alpLsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+function alpLsDel(k) { try { localStorage.removeItem(k); } catch (e) {} }
+function alpCleanUrl() { try { history.replaceState(null, document.title, '/'); } catch (e) {} }
+
+/* ---- показ/скрытие панели ---- */
+function alpShow(step) {
+  const card = document.querySelector('#screen-auth .auth-card');
+  if (!card) return;
+  card.classList.add('link-mode');
+  alpEl('screen-auth').classList.add('alp-on');
+  alpEl('alp-step-email').style.display = step === 'email' ? 'block' : 'none';
+  alpEl('alp-step-sent').style.display = step === 'sent' ? 'block' : 'none';
+  alpEl('auth-sub-text').textContent = 'Вход по ссылке из письма';
+}
+function alpExit() {
+  alpAnimToken++;
+  const card = document.querySelector('#screen-auth .auth-card');
+  if (card) card.classList.remove('link-mode');
+  alpEl('screen-auth').classList.remove('alp-on');
+  alpEl('auth-sub-text').textContent = isRegisterMode ? 'Создайте аккаунт Lunox' : 'Войдите, чтобы продолжить общение';
+}
+function alpSetEmailStep(mode) {
+  alpMode = mode;
+  const confirm = mode === 'confirm';
+  alpEl('alp-email-title').textContent = confirm ? 'Подтвердите email' : 'Вход по ссылке';
+  alpEl('alp-email-text').textContent = confirm
+    ? 'Вы открыли ссылку на другом устройстве. Введите email, на который пришло письмо.'
+    : 'Укажите email — мы отправим ссылку для входа без пароля.';
+  alpEl('alp-continue').textContent = confirm ? 'Войти' : 'Продолжить';
+  alpEl('alp-back').textContent = confirm ? 'Отмена' : 'Войти с паролем';
+}
+function alpSetSentTexts(kind, email) {
+  alpEl('alp-sent-title').textContent = kind === 'sent' ? 'Проверьте почту' : (kind === 'verify' ? 'Проверяем ссылку' : 'Вход выполнен');
+  const t = alpEl('alp-sent-text');
+  t.textContent = '';
+  if (kind === 'sent') {
+    t.appendChild(document.createTextNode('Мы отправили ссылку на '));
+    const b = document.createElement('b');
+    b.textContent = email;
+    t.appendChild(b);
+  } else {
+    t.textContent = kind === 'verify' ? 'Подождите — выполняем вход.' : 'Открываем Lunox.';
+  }
+  alpEl('alp-sent-extra').style.display = kind === 'sent' ? 'block' : 'none';
+}
+
+/* ---- анимация (build47): класс-драйвен, тайминги в CSS. is-play | is-loading | is-success | is-done ---- */
+function alpStageReset(cls) {
+  const st = alpEl('alp-stage');
+  st.className = 'alp-stage';
+  void st.offsetWidth;                      // перезапуск CSS-анимаций
+  if (cls) st.className = 'alp-stage ' + cls;
+  return st;
+}
+function alpStageLoading() { alpAnimToken++; alpStageReset('is-loading'); }
+async function alpStageSuccess() {
+  const token = ++alpAnimToken;
+  if (alpReduced()) { alpStageReset('is-done'); return; }
+  alpStageReset('is-success');
+  await alpSleep(720);                      // 230 + 450 + 250 мс финала
+  if (token === alpAnimToken) alpEl('alp-stage').className = 'alp-stage is-done';
+}
+function alpPlaySent() {
+  alpAnimToken++;
+  alpStageReset(alpReduced() ? 'is-done' : 'is-play');
+}
+
+/* ---- отправка ссылки ---- */
+function alpCooldownLeft(email) {
+  try {
+    const o = JSON.parse(alpLsGet(EMAIL_LINK_SENT_KEY) || 'null');
+    if (!o || o.email !== email) return 0;
+    return Math.max(0, EMAIL_LINK_COOLDOWN_SEC - Math.floor((Date.now() - o.at) / 1000));
+  } catch (e) { return 0; }
+}
+function alpStartCooldownUI(email) {
+  clearInterval(alpCooldownTimer);
+  alpCooldownTimer = null;
+  const btn = alpEl('alp-resend');
+  const tick = () => {
+    const left = alpCooldownLeft(email);
+    if (left > 0) { btn.disabled = true; btn.textContent = 'Отправить снова (' + left + ' с)'; }
+    else { btn.disabled = false; btn.textContent = 'Отправить снова'; clearInterval(alpCooldownTimer); alpCooldownTimer = null; }
+  };
+  tick();
+  if (alpCooldownLeft(email) > 0) alpCooldownTimer = setInterval(tick, 1000);
+}
+async function alpSend(email, force) {
+  hideAuthError();
+  if (!alpIsEmail(email)) { showAuthError('Введите корректный email.'); return false; }
+  if (isTempEmailDomain(email)) { showAuthError('Используйте постоянный email'); return false; }
+  if (await isEmailBanned(email)) { showAuthError(BANNED_MSG); return false; }
+  if (!force && alpCooldownLeft(email) > 0) { alpLsSet(EMAIL_LINK_STORAGE_KEY, email); return true; }   // ссылка только что отправлена
+  await auth.sendSignInLinkToEmail(email, { url: EMAIL_LINK_URL, handleCodeInApp: true });
+  alpLsSet(EMAIL_LINK_STORAGE_KEY, email);
+  alpLsSet(EMAIL_LINK_SENT_KEY, JSON.stringify({ email, at: Date.now() }));
+  return true;
+}
+function alpShowSent(email) {
+  alpCurrentEmail = email;
+  alpSetSentTexts('sent', email);
+  alpShow('sent');
+  alpStartCooldownUI(email);
+  alpPlaySent();
+}
+
+/* ---- завершение входа по ссылке ---- */
+async function alpFinishApp() {
+  emailLinkInProgress = false;
+  alpExit();
+  if (typeof lunoxAuthStateHandler === 'function') await lunoxAuthStateHandler(auth.currentUser);
+}
+async function alpFail(msg, reopenEmail) {
+  alpCleanUrl();
+  await alpFinishApp();
+  showAuthError(msg);
+  if (reopenEmail) {
+    alpSetEmailStep('send');
+    alpEl('alp-email').value = reopenEmail;
+    alpShow('email');
+  }
+}
+function alpPromptConfirm(msg) {
+  alpSetEmailStep('confirm');
+  alpEl('alp-email').value = '';
+  alpShow('email');
+  if (msg) showAuthError(msg); else hideAuthError();
+  setTimeout(() => { try { alpEl('alp-email').focus(); } catch (e) {} }, 60);
+}
+async function runEmailLinkSignIn(email) {
+  email = String(email || '').trim().toLowerCase();
+  alpSetSentTexts('verify');
+  alpShow('sent');
+  alpStageLoading();
+  let cred = null;
+  try {
+    cred = await auth.signInWithEmailLink(email, window.location.href);
+  } catch (err) {
+    const code = err && err.code;
+    if (code === 'auth/invalid-email') {            // введён не тот email, на который пришла ссылка
+      alpLsDel(EMAIL_LINK_STORAGE_KEY);
+      alpPromptConfirm('Этот email не совпадает с адресом, на который пришла ссылка.');
+      return;
+    }
+    if (code === 'auth/multi-factor-auth-required' && err.resolver) {   // 2FA: тот же SMS-шаг, что и при входе по паролю
+      alpCleanUrl();
+      await alpFinishApp();
+      handleMfaSignIn(err.resolver);
+      return;
+    }
+    const expired = code === 'auth/invalid-action-code' || code === 'auth/expired-action-code';
+    await alpFail(translateFirebaseError(err), expired ? email : '');
+    return;
+  }
+  alpCleanUrl();
+  alpLsDel(EMAIL_LINK_STORAGE_KEY);
+  alpLsDel(EMAIL_LINK_SENT_KEY);
+  // Новый пользователь: профиля Lunox нет — убираем «пустой» аккаунт Firebase и отправляем на регистрацию
+  // (иначе createUserWithEmailAndPassword потом упадёт с email-already-in-use).
+  if (cred.additionalUserInfo && cred.additionalUserInfo.isNewUser) {
+    try { await cred.user.delete(); } catch (e) { try { await auth.signOut(); } catch (e2) {} }
+    await alpFinishApp();
+    isRegisterMode = true;
+    applyAuthModeUI();
+    const regEmail = alpEl('input-email');
+    if (regEmail) regEmail.value = email;
+    showAuthError('Аккаунт с таким email не найден. Завершите регистрацию.');
+    return;
+  }
+  // У аккаунта включена 2FA, а Firebase не потребовал второй фактор — вход по ссылке не должен её обходить.
+  const factors = cred.user && cred.user.multiFactor && cred.user.multiFactor.enrolledFactors;
+  if (factors && factors.length) {
+    try { await auth.signOut(); } catch (e) {}
+    await alpFail('Для этого аккаунта включена 2FA. Войдите по паролю.');
+    return;
+  }
+  alpSetSentTexts('ok');
+  await alpStageSuccess();
+  await alpSleep(450);
+  await alpFinishApp();
+}
+async function alpAbortLink() {
+  alpCleanUrl();
+  hideAuthError();
+  await alpFinishApp();
+}
+function initEmailLinkSignIn() {
+  let isLink = false;
+  try { isLink = auth.isSignInWithEmailLink(window.location.href); } catch (e) {}
+  if (!isLink) return;
+  emailLinkInProgress = true;                      // до первого срабатывания onAuthStateChanged
+  const saved = alpLsGet(EMAIL_LINK_STORAGE_KEY);
+  if (saved) runEmailLinkSignIn(saved);
+  else alpPromptConfirm('');                       // ссылку открыли на другом устройстве — просим email
+}
+
+/* ---- события ---- */
+alpEl('btn-login-by-link').addEventListener('click', () => {
+  hideAuthError();
+  alpSetEmailStep('send');
+  alpEl('alp-email').value = alpEl('input-email-login').value.trim();
+  alpShow('email');
+});
+alpEl('alp-continue').addEventListener('click', async () => {
+  const btn = alpEl('alp-continue');
+  const email = alpEl('alp-email').value.trim().toLowerCase();
+  btn.disabled = true;
+  try {
+    if (alpMode === 'confirm') {
+      if (!alpIsEmail(email)) { showAuthError('Введите корректный email.'); return; }
+      hideAuthError();
+      await runEmailLinkSignIn(email);
+    } else if (await alpSend(email, false)) {
+      alpShowSent(email);
+    }
+  } catch (err) {
+    showAuthError(translateFirebaseError(err));
+  } finally {
+    btn.disabled = false;
+  }
+});
+alpEl('alp-email').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); alpEl('alp-continue').click(); } });
+alpEl('alp-back').addEventListener('click', () => {
+  if (alpMode === 'confirm') { alpAbortLink(); return; }
+  hideAuthError();
+  alpExit();
+});
+alpEl('alp-resend').addEventListener('click', async () => {
+  const email = alpCurrentEmail;
+  if (!email || alpCooldownLeft(email) > 0) return;
+  const btn = alpEl('alp-resend');
+  btn.disabled = true;
+  try {
+    if (await alpSend(email, true)) { alpStartCooldownUI(email); alpPlaySent(); }
+    else btn.disabled = false;
+  } catch (err) {
+    showAuthError(translateFirebaseError(err));
+    alpStartCooldownUI(email);
+  }
+});
+alpEl('alp-change').addEventListener('click', () => {
+  hideAuthError();
+  alpSetEmailStep('send');
+  alpEl('alp-email').value = alpCurrentEmail;
+  alpShow('email');
+});
+initEmailLinkSignIn();
+
 // Подставляем запомненный email при загрузке экрана входа.
 (function restoreRememberedEmail() {
   try {
@@ -9298,7 +9675,13 @@ function translateFirebaseError(err) {
     'auth/app-not-authorized': 'Домен сайта не авторизован в Firebase для этой операции.',
     'auth/quota-exceeded': 'Превышен лимит SMS-сообщений. Попробуйте позже.',
     'auth/user-mismatch': 'Пароль не подходит для текущего аккаунта.',
-    'auth/user-token-expired': 'Сессия устарела. Войдите заново и повторите действие.'
+    'auth/user-token-expired': 'Сессия устарела. Войдите заново и повторите действие.',
+    'auth/invalid-action-code': 'Ссылка недействительна или уже использована. Запросите новую.',
+    'auth/expired-action-code': 'Срок действия ссылки истёк. Запросите новую.',
+    'auth/operation-not-allowed': 'Вход по ссылке не включён в Firebase: Authentication → Sign-in method → Email/Password → Email link.',
+    'auth/unauthorized-continue-uri': 'Домен ссылки не добавлен в Firebase: Authentication → Settings → Authorized domains.',
+    'auth/invalid-continue-uri': 'Некорректный адрес возврата для ссылки входа.',
+    'auth/missing-continue-uri': 'Не задан адрес возврата для ссылки входа.'
   };
   return map[code] || ('Ошибка: ' + (err.message || 'что-то пошло не так.'));
 }
@@ -11605,11 +11988,12 @@ document.getElementById('row-verify-debug').addEventListener('click', async () =
   } finally { _verifyDebugBusy = false; }
 });
 
-auth.onAuthStateChanged(async (user) => {
+const lunoxAuthStateHandler = async (user) => {
  try {
   if (user) {
     // v27: во время регистрации профиль ещё пишется — не инициализируем приложение раньше времени.
-    if (registrationInProgress) return;
+    // build46: то же самое, пока завершается вход по ссылке из письма (см. emailLinkInProgress).
+    if (registrationInProgress || emailLinkInProgress) return;
     // v27: неподтверждённый email больше не блокирует вход — вместо этого мягкий баннер (updateVerifyUI).
     currentUser = user;
     // --- v23: бан по uid/email и удалённый профиль → не пускаем ---
@@ -11699,7 +12083,8 @@ auth.onAuthStateChanged(async (user) => {
   // с кнопкой «Попробовать снова», а не оставляет пользователя на заставке.
   failInitialLoad(err);
  }
-}, (err) => {
+};
+auth.onAuthStateChanged(lunoxAuthStateHandler, (err) => {
   // Ошибка самого Firebase Auth (редко, но возможна — например, при сбое
   // локального хранилища браузера).
   failInitialLoad(err);
