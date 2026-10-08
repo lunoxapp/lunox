@@ -4582,12 +4582,7 @@ async function enforceBanOnLogin(user) {
   if (!user || isProtectedEmail(user.email)) return false;
   let blocked = await isUidBanned(user.uid);
   if (!blocked) blocked = await isEmailBanned(user.email);
-  if (!blocked) {
-    try {
-      const snap = await db.collection('users').doc(user.uid).get({ source: 'server' });
-      if (!snap.exists) blocked = true;
-    } catch (e) { /* нет сети — не блокируем */ }
-  }
+  // build57: users/{uid} нет или он пустой — не бан: lunoxAuthStateHandler откроет форму профиля (lunoxNeedsProfile)
   if (!blocked) return false;
   try { removeSavedAccountByUid(user.uid); } catch (e) {}
   try { await auth.signOut(); } catch (e) {}
@@ -9363,6 +9358,16 @@ function otpClear(focusFirst) {
 }
 function otpCode() { return otpIns().map((el) => el.value).join(''); }
 
+// build57: профиль «пустой», если users/{uid} нет или в нём нет имени (заглушка от merge-записей). Ошибка чтения — false (прежний путь).
+async function lunoxNeedsProfile(user) {
+  if (!user || isProtectedEmail(user.email)) return false;
+  try {
+    const snap = await db.collection('users').doc(user.uid).get({ source: 'server' });
+    if (!snap.exists) return true;
+    const d = snap.data() || {};
+    return !String(d.name || '').trim();
+  } catch (e) { return false; }
+}
 async function otpCall(path, payload) {
   let res;
   try {
@@ -9490,7 +9495,7 @@ async function otpSubmit() {
     let needProfile = false;
     try {
       const me = auth.currentUser;
-      if (me) needProfile = !(await db.collection('users').doc(me.uid).get({ source: 'server' })).exists;
+      if (me) needProfile = await lunoxNeedsProfile(me);
     } catch (e) { needProfile = false; }                         // нет сети/ошибка чтения — прежний путь, проверит onAuthStateChanged
     alpEl('otp-title').textContent = 'Вход выполнен';
     alpEl('otp-text').textContent = needProfile ? 'Осталось создать профиль.' : 'Открываем Lunox.';
@@ -9678,7 +9683,13 @@ async function otpProfileSubmit() {
     };
     const userRef = db.collection('users').doc(uid);
     let saved = false;
-    try {
+    let stubDoc = false;
+    try { stubDoc = (await userRef.get({ source: 'server' })).exists; } catch (e) {}
+    if (stubDoc) {                                               // build57: документ есть, но пустой — create правилами закрыт, пишем только разрешённые update поля
+      await userRef.update({ name: name, nameLower: name.toLowerCase(), username: username, avatarUrl: avatarUrl || '', status: 'online', privacyStatus: 'everyone', privacyMessages: 'everyone', nameChanges: [] });
+      saved = true;
+    }
+    if (!saved) try {
       const statsRef = db.collection('config').doc('stats');
       await db.runTransaction(async (tx) => {
         const st = await tx.get(statsRef);
@@ -12598,6 +12609,15 @@ const lunoxAuthStateHandler = async (user) => {
     currentUser = user;
     // --- v23: бан по uid/email и удалённый профиль → не пускаем ---
     if (await enforceBanOnLogin(user)) { finishInitialLoad(); return; }
+    // build57: вошли, но профиля нет/пустой (имя, username, контакты не грузятся) — форма профиля вместо пустого аккаунта
+    if (await lunoxNeedsProfile(user)) {
+      emailLinkInProgress = true;                                  // приложение не стартует до сохранения профиля (alpFinishApp сбросит флаг)
+      otpEmail = user.email || otpEmail;
+      showScreen('screen-auth');
+      otpProfileOpen();
+      finishInitialLoad();
+      return;
+    }
     // Автовыход через 24 часа: проверяем метку времени входа при каждой загрузке
     // страницы. Если сессия истекла — сразу выходим и прекращаем инициализацию.
     const sessionExpired = await checkAndEnforceSessionExpiry(user);
