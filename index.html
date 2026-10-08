@@ -1427,8 +1427,9 @@ body.theme-light .otp-tile{box-shadow:0 8px 20px rgba(60,30,120,.14),inset 0 1px
 .otp-stage .otp-in:focus{border:0;box-shadow:none;outline:none;background:transparent}
 .otp-tile:focus-within{border-color:#a78bfa;box-shadow:0 0 0 3px rgba(124,58,237,.22),0 0 18px rgba(124,58,237,.45),inset 0 1px 0 rgba(255,255,255,.14)}
 .otp-tile.has-v{border-color:rgba(167,139,250,.6);background:linear-gradient(160deg,rgba(167,139,250,.42),rgba(124,58,237,.2))}
-.otp-stage.is-enter .otp-tile{animation:otpIn 470ms calc(var(--i)*50ms) cubic-bezier(.2,.7,.2,1) backwards}
-@keyframes otpIn{from{opacity:0;transform:translate(var(--x),8px)}to{opacity:1;transform:translate(var(--x),0)}}
+/* появление экрана кода: стопка в центре -> веер -> ряд (от центра к краям) */
+.otp-stage.is-enter .otp-tile{animation:otpFanIn 780ms calc((2 - var(--s))*45ms) var(--e) backwards}
+@keyframes otpFanIn{0%{opacity:0;transform:translate(0,6px) rotate(0deg) scale(.9)}26%{opacity:1;transform:translate(var(--fx),0) rotate(var(--a)) scale(1)}100%{opacity:1;transform:translate(var(--x),0) rotate(0deg) scale(1)}}
 .otp-ring,.otp-check,.otp-rays{position:absolute;pointer-events:none;overflow:visible}
 .otp-ring{z-index:7}
 .otp-check{z-index:10}
@@ -1611,7 +1612,7 @@ window.lxApplyBlur(false);document.addEventListener("DOMContentLoaded",function(
               <label for="alp-email">Email</label>
               <input type="email" id="alp-email" placeholder="you@example.com" autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false">
             </div>
-            <button class="btn-primary" id="alp-continue" type="button">Получить код</button>
+            <button class="btn-primary" id="alp-continue" type="button">Продолжить</button>
             <div class="alp-actions"><a class="link-inline" id="alp-back">Войти с паролем</a></div>
           </div>
         </div>
@@ -9034,6 +9035,7 @@ const EMAIL_LINK_SENT_KEY = 'lunoxEmailLinkSentAt';        // {email, at} — д
 const EMAIL_LINK_COOLDOWN_SEC = 60;
 let emailLinkInProgress = false;   // пока завершается вход по ссылке, onAuthStateChanged не запускает приложение
 let alpMode = 'send';              // 'send' — запрос ссылки, 'confirm' — подтверждение email после перехода по ссылке
+let otpPhase = 'start';            // экран email: 'start' — кнопка «Продолжить», 'sent' — код отправлен, кнопка «Ввести код»
 let alpCurrentEmail = '';
 let alpAnimToken = 0;
 let alpCooldownTimer = null;
@@ -9073,7 +9075,8 @@ function alpSetEmailStep(mode) {
   alpEl('alp-email-text').textContent = confirm
     ? 'Вы открыли ссылку на другом устройстве. Введите email, на который пришло письмо.'
     : 'Укажите email — мы отправим 6-значный код для входа без пароля.';
-  alpEl('alp-continue').textContent = confirm ? 'Войти' : 'Получить код';
+  otpPhase = 'start';
+  alpEl('alp-continue').textContent = confirm ? 'Войти' : 'Продолжить';
   alpEl('alp-back').textContent = confirm ? 'Отмена' : 'Войти с паролем';
 }
 function alpSetSentTexts(kind, email) {
@@ -9257,8 +9260,11 @@ alpEl('alp-continue').addEventListener('click', async () => {
       if (!alpIsEmail(email)) { showAuthError('Введите корректный email.'); return; }
       hideAuthError();
       await runEmailLinkSignIn(email);
+    } else if (otpPhase === 'sent') {
+      otpShowCode(otpEmail);                                   // 2-й клик: «Ввести код» -> экран с 6 полями
     } else if (await otpSend(email, false)) {
-      otpShowCode(email);
+      otpEmail = email;                                        // email сохранён; остаёмся на этом экране
+      otpSetEmailPhase('sent');
     }
   } catch (err) {
     showAuthError(translateFirebaseError(err));
@@ -9367,6 +9373,26 @@ function otpErrText(err, data) {
   return 'Не удалось выполнить вход. Попробуйте ещё раз.';
 }
 
+/* ---- экран 1: «Продолжить» -> (письмо ушло) -> «Ввести код», остаёмся на месте ---- */
+function otpSetEmailPhase(phase) {
+  otpPhase = phase;
+  const sent = phase === 'sent';
+  alpEl('alp-continue').textContent = sent ? 'Ввести код' : 'Продолжить';
+  const t = alpEl('alp-email-text');
+  t.textContent = '';
+  if (!sent) { t.textContent = 'Укажите email — мы отправим 6-значный код для входа без пароля.'; return; }
+  t.insertAdjacentHTML('afterbegin', '<svg class="tg-ic" viewBox="0 0 24 24" style="width:16px;height:16px;margin-right:6px;vertical-align:-3px;color:#a78bfa"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>');
+  t.appendChild(document.createTextNode('Мы отправили 6-значный код на '));
+  const b = document.createElement('b');
+  b.textContent = otpEmail;
+  t.appendChild(b);
+  t.appendChild(document.createTextNode('. Когда письмо придёт, нажмите «Ввести код». Не пришло — проверьте папку «Спам».'));
+}
+// Email изменили после отправки — прежний код к нему не относится, возвращаем «Продолжить»
+alpEl('alp-email').addEventListener('input', () => {
+  if (alpMode === 'send' && otpPhase === 'sent' && alpEl('alp-email').value.trim().toLowerCase() !== otpEmail) otpSetEmailPhase('start');
+});
+
 /* ---- отправка кода (экран 1) ---- */
 async function otpSend(email, force) {
   hideAuthError();
@@ -9404,7 +9430,7 @@ function otpShowCode(email) {
   otpClear(false);
   otpStageState(alpReduced() ? '' : 'is-enter');
   otpStartCooldownUI(email);
-  setTimeout(() => { const f = otpIns()[0]; if (f && alpEl('alp-step-code').style.display !== 'none') f.focus(); }, 80);
+  setTimeout(() => { const f = otpIns()[0]; if (f && alpEl('alp-step-code').style.display !== 'none') f.focus(); }, alpReduced() ? 80 : 450);   // клавиатура не перекрывает веер
 }
 
 function otpFill(from, digits) {
