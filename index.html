@@ -1357,6 +1357,8 @@ body.theme-light .alp-glass{background:rgba(255,255,255,.7);box-shadow:0 12px 40
 .alp-glass .field{text-align:left;margin-bottom:14px}
 .alp-hint{margin:2px 0 14px;font-size:11.5px;line-height:1.45;color:var(--text-dim)}
 .alp-actions{display:flex;justify-content:center;margin-top:14px}
+.otp-link-btn{background:none;border:0;padding:4px 6px;margin:0;width:auto;font-family:inherit;box-shadow:none}
+.otp-link-btn:disabled{opacity:.55;cursor:default;text-decoration:none}
 .alp-glass .btn-secondary:disabled{opacity:.55;cursor:default}
 /* build47: OTP-анимация по видео. T=0 -> класс .is-play; --o = начало финала */
 .alp-stage{--o:0ms;--e:cubic-bezier(.19,1,.22,1);position:relative;height:100px;width:100%;max-width:280px;margin:0 auto 10px}
@@ -1638,8 +1640,8 @@ window.lxApplyBlur(false);document.addEventListener("DOMContentLoaded",function(
             <h2 class="alp-title" id="otp-title" aria-live="polite">Введите код</h2>
             <p class="alp-text" id="otp-text"></p>
             <p class="alp-hint">Письмо не пришло? Проверьте папку «Спам». Код действует 5 минут.</p>
-            <button class="btn-secondary" id="otp-resend" type="button">Отправить снова</button>
-            <div class="alp-actions"><a class="link-inline" id="otp-change">Изменить email</a></div>
+            <div class="alp-actions"><button class="link-inline otp-link-btn" id="otp-resend" type="button">Отправить повторно</button></div>
+            <div class="alp-actions"><a class="link-inline" id="otp-change">Войти с паролем</a></div>
           </div>
         </div>
       </div>
@@ -9035,7 +9037,7 @@ const EMAIL_LINK_SENT_KEY = 'lunoxEmailLinkSentAt';        // {email, at} — д
 const EMAIL_LINK_COOLDOWN_SEC = 60;
 let emailLinkInProgress = false;   // пока завершается вход по ссылке, onAuthStateChanged не запускает приложение
 let alpMode = 'send';              // 'send' — запрос ссылки, 'confirm' — подтверждение email после перехода по ссылке
-let otpPhase = 'start';            // экран email: 'start' — кнопка «Продолжить», 'sent' — код отправлен, кнопка «Ввести код»
+let otpPhase = 'start';            // не используется с build53: «Продолжить» сразу открывает экран кода
 let alpCurrentEmail = '';
 let alpAnimToken = 0;
 let alpCooldownTimer = null;
@@ -9260,11 +9262,8 @@ alpEl('alp-continue').addEventListener('click', async () => {
       if (!alpIsEmail(email)) { showAuthError('Введите корректный email.'); return; }
       hideAuthError();
       await runEmailLinkSignIn(email);
-    } else if (otpPhase === 'sent') {
-      otpShowCode(otpEmail);                                   // 2-й клик: «Ввести код» -> экран с 6 полями
     } else if (await otpSend(email, false)) {
-      otpEmail = email;                                        // email сохранён; остаёмся на этом экране
-      otpSetEmailPhase('sent');
+      otpShowCode(email);                                      // письмо ушло -> сразу экран с 6 полями (веер)
     }
   } catch (err) {
     showAuthError(translateFirebaseError(err));
@@ -9351,8 +9350,8 @@ function otpStartCooldownUI(email) {
   const btn = alpEl('otp-resend');
   const tick = () => {
     const left = otpCooldownLeft(email);
-    if (left > 0) { btn.disabled = true; btn.textContent = 'Отправить снова (' + left + ' с)'; }
-    else { btn.disabled = false; btn.textContent = 'Отправить снова'; clearInterval(otpTimer); otpTimer = null; }
+    if (left > 0) { btn.disabled = true; btn.textContent = 'Отправить повторно (' + left + ' с)'; }
+    else { btn.disabled = false; btn.textContent = 'Отправить повторно'; clearInterval(otpTimer); otpTimer = null; }
   };
   tick();
   if (otpCooldownLeft(email) > 0) otpTimer = setInterval(tick, 1000);
@@ -9372,26 +9371,6 @@ function otpErrText(err, data) {
   if (err === 'network') return 'Нет связи с сервером. Проверьте интернет.';
   return 'Не удалось выполнить вход. Попробуйте ещё раз.';
 }
-
-/* ---- экран 1: «Продолжить» -> (письмо ушло) -> «Ввести код», остаёмся на месте ---- */
-function otpSetEmailPhase(phase) {
-  otpPhase = phase;
-  const sent = phase === 'sent';
-  alpEl('alp-continue').textContent = sent ? 'Ввести код' : 'Продолжить';
-  const t = alpEl('alp-email-text');
-  t.textContent = '';
-  if (!sent) { t.textContent = 'Укажите email — мы отправим 6-значный код для входа без пароля.'; return; }
-  t.insertAdjacentHTML('afterbegin', '<svg class="tg-ic" viewBox="0 0 24 24" style="width:16px;height:16px;margin-right:6px;vertical-align:-3px;color:#a78bfa"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>');
-  t.appendChild(document.createTextNode('Мы отправили 6-значный код на '));
-  const b = document.createElement('b');
-  b.textContent = otpEmail;
-  t.appendChild(b);
-  t.appendChild(document.createTextNode('. Когда письмо придёт, нажмите «Ввести код». Не пришло — проверьте папку «Спам».'));
-}
-// Email изменили после отправки — прежний код к нему не относится, возвращаем «Продолжить»
-alpEl('alp-email').addEventListener('input', () => {
-  if (alpMode === 'send' && otpPhase === 'sent' && alpEl('alp-email').value.trim().toLowerCase() !== otpEmail) otpSetEmailPhase('start');
-});
 
 /* ---- отправка кода (экран 1) ---- */
 async function otpSend(email, force) {
@@ -9420,10 +9399,11 @@ function otpShowCode(email) {
   otpBusy = false;
   const t = alpEl('otp-text');
   t.textContent = '';
-  t.appendChild(document.createTextNode('Мы отправили 6-значный код на '));
+  t.appendChild(document.createTextNode('Письмо отправлено на '));
   const b = document.createElement('b');
   b.textContent = email;
   t.appendChild(b);
+  t.appendChild(document.createTextNode('. Введите 6-значный код.'));
   alpEl('otp-title').textContent = 'Введите код';
   alpShow('code');
   otpLock(false);
@@ -9586,8 +9566,7 @@ alpEl('otp-change').addEventListener('click', () => {
   otpTimer = null;
   hideAuthError();
   alpSetEmailStep('send');
-  alpEl('alp-email').value = otpEmail;
-  alpShow('email');
+  alpExit();                                                     // назад на экран входа с паролем
 });
 
 initEmailLinkSignIn();
