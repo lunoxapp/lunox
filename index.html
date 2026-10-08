@@ -1360,6 +1360,13 @@ body.theme-light .alp-glass{background:rgba(255,255,255,.7);box-shadow:0 12px 40
 .otp-link-btn{background:none;border:0;padding:4px 6px;margin:0;width:auto;font-family:inherit;box-shadow:none}
 .otp-link-btn:disabled{opacity:.55;cursor:default;text-decoration:none}
 .alp-glass .btn-secondary:disabled{opacity:.55;cursor:default}
+/* build56: форма профиля после входа по коду */
+.alp-pf-ic{width:44px;height:44px;margin:0 auto 12px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:rgba(124,58,237,.16);border:1px solid rgba(167,139,250,.3)}
+.alp-pf-ic svg,#alp-pf-avatar svg{fill:none;stroke:var(--violet-bright);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.alp-pf-ic svg{width:22px;height:22px}
+#alp-pf-avatar svg{width:30px;height:30px}
+#alp-step-profile .btn-primary{width:100%}
+#alp-step-profile .btn-primary:disabled{opacity:.55;cursor:default}
 /* build47: OTP-анимация по видео. T=0 -> класс .is-play; --o = начало финала */
 .alp-stage{--o:0ms;--e:cubic-bezier(.19,1,.22,1);position:relative;height:100px;width:100%;max-width:280px;margin:0 auto 10px}
 .alp-stage.is-play{--o:4223ms}
@@ -1642,6 +1649,34 @@ window.lxApplyBlur(false);document.addEventListener("DOMContentLoaded",function(
             <p class="alp-hint">Письмо не пришло? Проверьте папку «Спам». Код действует 5 минут.</p>
             <div class="alp-actions"><button class="link-inline otp-link-btn" id="otp-resend" type="button">Отправить повторно</button></div>
             <div class="alp-actions"><a class="link-inline" id="otp-change">Войти с паролем</a></div>
+          </div>
+        </div>
+        <!-- build56: профиль после входа по коду, если users/{uid} ещё нет -->
+        <div class="alp-step" id="alp-step-profile" style="display:none;">
+          <div class="alp-glass">
+            <div class="alp-pf-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg></div>
+            <h2 class="alp-title">Создайте профиль</h2>
+            <p class="alp-text">Осталось выбрать имя и @username.</p>
+            <div class="reg-avatar-picker" id="alp-pf-picker">
+              <div class="reg-avatar-preview" id="alp-pf-avatar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></div>
+              <input type="file" id="alp-pf-file" accept="image/*" style="display:none;">
+            </div>
+            <div class="field">
+              <label for="alp-pf-name">Имя</label>
+              <input type="text" id="alp-pf-name" placeholder="Как вас называть" autocomplete="name" maxlength="30">
+            </div>
+            <div class="field">
+              <label for="alp-pf-username">Имя пользователя</label>
+              <div class="username-input-wrap">
+                <span class="username-at">@</span>
+                <input type="text" id="alp-pf-username" placeholder="username" maxlength="20" autocomplete="off" autocapitalize="off" spellcheck="false">
+                <span class="username-status" id="alp-pf-status"></span>
+              </div>
+              <div class="field-hint">Латиница, цифры и _, 5–20 символов, начинается с буквы</div>
+              <div class="username-suggestions" id="alp-pf-sugg" style="display:none;"></div>
+            </div>
+            <button class="btn-primary" id="alp-pf-submit" type="button">Продолжить</button>
+            <div class="alp-actions"><a class="link-inline" id="alp-pf-cancel">Выйти</a></div>
           </div>
         </div>
       </div>
@@ -9060,7 +9095,9 @@ function alpShow(step) {
   alpEl('alp-step-email').style.display = step === 'email' ? 'block' : 'none';
   alpEl('alp-step-sent').style.display = step === 'sent' ? 'block' : 'none';
   alpEl('alp-step-code').style.display = step === 'code' ? 'block' : 'none';
-  alpEl('auth-sub-text').textContent = (step === 'sent' || (step === 'email' && alpMode === 'confirm')) ? 'Вход по ссылке из письма' : 'Вход по коду из письма';
+  alpEl('alp-step-profile').style.display = step === 'profile' ? 'block' : 'none';
+  if (step === 'profile') alpEl('auth-sub-text').textContent = 'Завершите регистрацию';
+  else alpEl('auth-sub-text').textContent = (step === 'sent' || (step === 'email' && alpMode === 'confirm')) ? 'Вход по ссылке из письма' : 'Вход по коду из письма';
 }
 function alpExit() {
   alpAnimToken++;
@@ -9449,8 +9486,14 @@ async function otpSubmit() {
       return;
     }
     alpLsDel(OTP_SENT_KEY);
+    // build56: вошли, но профиля users/{uid} нет (новый email или недозаписанная регистрация) — сначала форма профиля
+    let needProfile = false;
+    try {
+      const me = auth.currentUser;
+      if (me) needProfile = !(await db.collection('users').doc(me.uid).get({ source: 'server' })).exists;
+    } catch (e) { needProfile = false; }                         // нет сети/ошибка чтения — прежний путь, проверит onAuthStateChanged
     alpEl('otp-title').textContent = 'Вход выполнен';
-    alpEl('otp-text').textContent = 'Открываем Lunox.';
+    alpEl('otp-text').textContent = needProfile ? 'Осталось создать профиль.' : 'Открываем Lunox.';
     if (alpReduced()) otpStageState('is-done');
     else {
       otpStageState('is-success');
@@ -9459,6 +9502,7 @@ async function otpSubmit() {
     }
     await alpSleep(450);
     otpBusy = false;
+    if (needProfile) { otpProfileOpen(); return; }               // emailLinkInProgress остаётся true: приложение не стартует до сохранения профиля
     await alpFinishApp();                                        // уже вошли: в любом случае запускаем приложение
     return;
   }
@@ -9493,6 +9537,188 @@ async function otpSubmit() {
     return;
   }
   otpFail(otpErrText(d.error || (r.status === 0 ? 'network' : ''), d), d.error === 'expired' ? false : true);
+}
+
+/* ===== build56: профиль после входа по коду, если users/{uid} не существует ===== */
+const OTP_PF_AVATAR_HTML = alpEl('alp-pf-avatar').innerHTML;
+let otpPfBusy = false;
+let otpPfTimer = null;
+function otpProfileOpen() {
+  otpPfBusy = false;
+  regAvatarFile = null;
+  alpEl('alp-pf-avatar').innerHTML = OTP_PF_AVATAR_HTML;
+  alpEl('alp-pf-file').value = '';
+  alpEl('alp-pf-name').value = '';
+  alpEl('alp-pf-username').value = '';
+  alpEl('alp-pf-status').className = 'username-status';
+  alpEl('alp-pf-sugg').style.display = 'none';
+  alpEl('alp-pf-sugg').innerHTML = '';
+  alpEl('alp-pf-submit').disabled = false;
+  hideAuthError();
+  alpShow('profile');
+  setTimeout(() => { try { alpEl('alp-pf-name').focus(); } catch (e) {} }, 150);
+}
+alpEl('alp-pf-picker').addEventListener('click', () => alpEl('alp-pf-file').click());
+alpEl('alp-pf-file').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (file.size > AVATAR_MAX_BYTES) { showAuthError('Файл слишком большой.'); e.target.value = ''; return; }
+  hideAuthError();
+  regAvatarFile = file;
+  const reader = new FileReader();
+  reader.onload = (ev) => { alpEl('alp-pf-avatar').innerHTML = '<img src="' + ev.target.result + '" alt="">'; };
+  reader.readAsDataURL(file);
+});
+alpEl('alp-pf-username').addEventListener('input', (e) => {
+  const raw = e.target.value;
+  const cleaned = raw.replace(/[^a-zA-Z0-9_]/g, '');
+  if (cleaned !== raw) e.target.value = cleaned;
+  const username = cleaned.trim().toLowerCase();
+  const st = alpEl('alp-pf-status');
+  const sg = alpEl('alp-pf-sugg');
+  sg.style.display = 'none'; sg.innerHTML = '';
+  if (otpPfTimer) clearTimeout(otpPfTimer);
+  if (!username || !isValidUsernameFormat(username)) { st.className = 'username-status'; return; }
+  st.className = 'username-status checking';
+  otpPfTimer = setTimeout(async () => {
+    try {
+      const snap = await db.collection('usernames_public').doc(username).get();
+      if (alpEl('alp-pf-username').value.trim().toLowerCase() !== username) return;   // устарело
+      if (snap.exists) {
+        st.className = 'username-status taken';
+        const rnd = () => Math.random().toString(36).slice(2, 6);
+        const list = [username + '_' + (1 + Math.floor(Math.random() * 98)), 'user_' + rnd(), username + rnd()]
+          .filter((v, i, a) => a.indexOf(v) === i && v.length <= 20);
+        sg.innerHTML = list.map(c => '<span class="username-suggestion-chip" data-u="' + escapeHtml(c) + '">@' + escapeHtml(c) + '</span>').join('');
+        sg.style.display = 'flex';
+      } else st.className = 'username-status ok';
+    } catch (err) { st.className = 'username-status'; }
+  }, 400);
+});
+alpEl('alp-pf-sugg').addEventListener('click', (e) => {
+  const chip = e.target.closest('.username-suggestion-chip');
+  if (!chip) return;
+  const inp = alpEl('alp-pf-username');
+  inp.value = chip.dataset.u;
+  inp.dispatchEvent(new Event('input'));
+});
+alpEl('alp-pf-name').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); alpEl('alp-pf-username').focus(); } });
+alpEl('alp-pf-username').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); otpProfileSubmit(); } });
+alpEl('alp-pf-submit').addEventListener('click', otpProfileSubmit);
+alpEl('alp-pf-cancel').addEventListener('click', async () => {
+  if (otpPfBusy) return;
+  emailLinkInProgress = false;
+  regAvatarFile = null;
+  try { await auth.signOut(); } catch (e) {}
+  alpExit();
+  hideAuthError();
+});
+
+async function otpProfileSubmit() {
+  if (otpPfBusy) return;
+  const user = auth.currentUser;
+  if (!user) { showAuthError('Сессия истекла. Войдите снова.'); return; }
+  const uid = user.uid;
+  const name = alpEl('alp-pf-name').value.trim();
+  const username = alpEl('alp-pf-username').value.trim().toLowerCase();
+  hideAuthError();
+  if (!name) { showAuthError('Введите имя.'); return; }
+  if (!isValidUsernameFormat(username)) { showAuthError('Username: латиница, цифры и _, 5–20 символов, начинается с буквы.'); return; }
+  otpPfBusy = true;
+  const btn = alpEl('alp-pf-submit');
+  btn.disabled = true;
+  let reserved = false;
+  try {
+    // 1) уникальность username (usernames_public)
+    const pub = await db.collection('usernames_public').doc(username).get();
+    if (pub.exists) {
+      alpEl('alp-pf-status').className = 'username-status taken';
+      showAuthError('Этот @username уже занят, выберите другой.');
+      return;
+    }
+    // 2) резерв username: usernames + usernames_public одним batch (так требуют правила). Профиль — после, чтобы не остаться без ника.
+    try {
+      const unBatch = db.batch();
+      unBatch.set(db.collection('usernames').doc(username), { uid: uid });
+      unBatch.set(db.collection('usernames_public').doc(username), { taken: true });
+      await unBatch.commit();
+      reserved = true;
+    } catch (e) {
+      showAuthError('Не удалось занять @username — возможно, его только что заняли. Выберите другой.');
+      return;
+    }
+    // 3) аватар (необязательно)
+    let avatarUrl = '';
+    if (regAvatarFile) {
+      try { avatarUrl = await uploadRegAvatar(uid, regAvatarFile); }
+      catch (e) { console.error('[Lunox] Ошибка загрузки аватара:', e); }
+    }
+    // 4) users/{uid} — те же поля, что в обычной регистрации (userCreateShapeOk). inviteCode: null — код создаст maybeEnsureInviteCode при первом входе (правила invites требуют null)
+    const profile = {
+      name: name,
+      nameLower: name.toLowerCase(),
+      badge: null,
+      bgInventory: ['none'],
+      activeBg: 'none',
+      luna: 0,
+      inventory: ['none'],
+      activeFrame: 'none',
+      originalName: name,
+      username: username,
+      avatarUrl: avatarUrl || '',
+      bio: '',
+      status: 'online',
+      privacyStatus: 'everyone',
+      privacyMessages: 'everyone',
+      nameChanges: [],
+      invitedBy: null,
+      invitedCount: 0,
+      inviteCode: null,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    const userRef = db.collection('users').doc(uid);
+    let saved = false;
+    try {
+      const statsRef = db.collection('config').doc('stats');
+      await db.runTransaction(async (tx) => {
+        const st = await tx.get(statsRef);
+        const before = st.exists ? st.data().usersCount : null;
+        if (!Number.isInteger(before) || before < 0) throw new Error('NO_STATS');
+        const pos = before + 1;
+        tx.update(statsRef, { usersCount: pos });
+        tx.set(db.collection('reg_marks').doc(uid), { createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+        tx.set(userRef, Object.assign({}, profile, { badge: regBadgeIdForPosition(pos) }), { merge: true });
+      });
+      saved = true;
+    } catch (e) { console.warn('[Lunox] Значок регистрации не выдан:', e && (e.code || e.message)); }
+    if (!saved) await userRef.set(profile, { merge: true });
+    reserved = false;                                            // профиль записан — откат ника не нужен
+    try {
+      await userRef.collection('private').doc('main').set({ email: otpEmail || user.email || '', phone: '', fcmTokens: [] }, { merge: true });
+    } catch (e) { console.error('[Lunox] Не удалось записать private/main (будет создан при входе):', e); }
+    sendTelegramAlert(
+      'Lunox: новая регистрация (вход по коду)\n' +
+      'Email: ' + (otpEmail || user.email || '') + '\n' +
+      'Имя: ' + name + '\n' +
+      'Username: @' + username + '\n' +
+      'Время: ' + new Date().toLocaleString('ru-RU')
+    );
+    regAvatarFile = null;
+    await alpFinishApp();                                        // профиль есть — открываем Lunox
+  } catch (err) {
+    if (reserved) {                                              // профиль не записан — освобождаем ник
+      try {
+        const rb = db.batch();
+        rb.delete(db.collection('usernames_public').doc(username));
+        rb.delete(db.collection('usernames').doc(username));
+        await rb.commit();
+      } catch (e2) {}
+    }
+    showAuthError(translateFirebaseError(err));
+  } finally {
+    otpPfBusy = false;
+    btn.disabled = false;
+  }
 }
 
 function otpFail(msg, retypeable) {
