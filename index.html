@@ -9571,6 +9571,34 @@ alpEl('otp-change').addEventListener('click', () => {
 
 initEmailLinkSignIn();
 
+/* ===== build54: авто-вход по ссылке из письма: lunoxapp.online/#otp=<email>&code=<code> ===== */
+function initOtpHashSignIn() {
+  let email = '', code = '', has = false;
+  try {
+    const p = new URLSearchParams((window.location.hash || '').replace(/^#/, ''));
+    has = p.has('otp') || p.has('code');
+    email = String(p.get('otp') || '').trim().toLowerCase().replace(/ /g, '+');   // '+' в email мог превратиться в пробел
+    code = String(p.get('code') || '').trim();
+  } catch (e) { return; }
+  if (!has) return;
+  try { history.replaceState(null, document.title, window.location.pathname + window.location.search); } catch (e) {}   // код не остаётся в адресной строке и истории
+  if (!alpIsEmail(email) || !/^\d{6}$/.test(code)) return;                      // нет code — обычный экран входа
+  let done = false;
+  const off = auth.onAuthStateChanged((u) => {
+    if (done) return;
+    done = true;
+    try { off(); } catch (e) {}
+    if (u || emailLinkInProgress) return;                                         // уже вошли или идёт вход по ссылке Firebase
+    otpShowCode(email);                                                           // экран с 6 полями
+    const token = otpToken;
+    alpSleep(alpReduced() ? 100 : 850).then(() => {                               // даём доиграть анимации «веера»
+      if (token !== otpToken || otpBusy) return;                                  // пользователь ушёл с экрана кода
+      otpFill(0, code);                                                           // вводит код и сам вызывает otpSubmit
+    });
+  });
+}
+initOtpHashSignIn();
+
 // Подставляем запомненный email при загрузке экрана входа.
 (function restoreRememberedEmail() {
   try {
