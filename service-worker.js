@@ -3,7 +3,7 @@
 // Telegram/GigaChat/Gemini и Netlify Functions (network-first, без агрессивного кэша),
 // чтобы не ломать реалтайм-данные и авторизацию.
 
-const CACHE_VERSION = 'lunox-static-v34';
+const CACHE_VERSION = 'lunox-static-v35';
 const PRECACHE_URLS = [
   '/',
   '/index.html',
