@@ -1417,6 +1417,60 @@ body.theme-light .alp-glass{background:rgba(255,255,255,.7);box-shadow:0 12px 40
 .is-done .alp-rb,.is-done .alp-check path{stroke-dashoffset:0}
 .is-done .alp-cdot{opacity:1}
 @media (prefers-reduced-motion:reduce){.auth-card.link-mode .alp-panel{animation:none}.is-loading .alp-ra{animation:none}}
+/* build50: вход по 6-значному коду. 6 полей: ряд -> ввод -> веер (симметричный) -> collapse -> кольцо -> галочка */
+.otp-stage{--tw:42px;--th:52px;--st:48px;--fs:19px;--e:cubic-bezier(.19,1,.22,1);--o:1500ms;position:relative;height:88px;width:100%;max-width:300px;margin:0 auto 10px}
+@media (max-width:380px){.otp-stage{--tw:38px;--th:48px;--st:43px;--fs:17px}}
+@media (max-width:340px){.otp-stage{--tw:34px;--th:44px;--st:39px;--fs:15px}}
+.otp-tile{--x:calc(var(--n)*var(--st));--fx:calc(var(--n)*var(--fs));--a:calc(var(--n)*7deg);position:absolute;left:50%;top:calc((88px - var(--th))/2);width:var(--tw);height:var(--th);margin-left:calc(var(--tw)/-2);border-radius:12px;background:linear-gradient(160deg,rgba(167,139,250,.30),rgba(124,58,237,.12));border:1px solid rgba(167,139,250,.34);box-shadow:0 8px 20px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.14);transform:translate(var(--x),0);z-index:var(--z);transition:border-color .18s,box-shadow .18s,background .18s;will-change:transform,opacity}
+body.theme-light .otp-tile{box-shadow:0 8px 20px rgba(60,30,120,.14),inset 0 1px 0 rgba(255,255,255,.7)}
+.otp-stage .otp-in{display:block;width:100%;height:100%;padding:0;margin:0;border:0;border-radius:inherit;background:transparent;color:var(--text-main);font-family:inherit;font-weight:700;font-size:22px;line-height:1;text-align:center;caret-color:#a78bfa;outline:none;box-shadow:none;-webkit-appearance:none;appearance:none;-webkit-text-fill-color:currentColor;opacity:1}
+.otp-stage .otp-in:focus{border:0;box-shadow:none;outline:none;background:transparent}
+.otp-tile:focus-within{border-color:#a78bfa;box-shadow:0 0 0 3px rgba(124,58,237,.22),0 0 18px rgba(124,58,237,.45),inset 0 1px 0 rgba(255,255,255,.14)}
+.otp-tile.has-v{border-color:rgba(167,139,250,.6);background:linear-gradient(160deg,rgba(167,139,250,.42),rgba(124,58,237,.2))}
+.otp-stage.is-enter .otp-tile{animation:otpIn 470ms calc(var(--i)*50ms) cubic-bezier(.2,.7,.2,1) backwards}
+@keyframes otpIn{from{opacity:0;transform:translate(var(--x),8px)}to{opacity:1;transform:translate(var(--x),0)}}
+.otp-ring,.otp-check,.otp-rays{position:absolute;pointer-events:none;overflow:visible}
+.otp-ring{z-index:7}
+.otp-check{z-index:10}
+.otp-rays{z-index:0}
+.otp-echo{z-index:8}
+.otp-ring{left:50%;top:calc((88px - var(--th))/2 - 8px);width:calc(var(--tw) + 16px);height:calc(var(--th) + 16px);margin-left:calc((var(--tw) + 16px)/-2)}
+.otp-ring path{fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.otp-ra{stroke:#8b5cf6;stroke-dasharray:.2 .8;stroke-dashoffset:-.16;opacity:0}
+.otp-rb{stroke:#a78bfa;stroke-dasharray:1 2;stroke-dashoffset:1;filter:drop-shadow(0 0 5px rgba(124,58,237,.9))}
+.otp-echo{position:absolute;left:50%;top:calc((88px - var(--th))/2);width:var(--tw);height:var(--th);margin-left:calc(var(--tw)/-2);border-radius:12px;border:1.5px solid rgba(167,139,250,.7);opacity:0;pointer-events:none}
+.otp-rays{left:50%;top:-26px;width:140px;height:140px;margin-left:-70px;opacity:0}
+.otp-rays line{stroke:#c4b5fd;stroke-width:1.5;stroke-linecap:round}
+.otp-check{left:50%;top:33px;width:22px;height:22px;margin-left:-11px}
+.otp-check path{fill:none;stroke:#c4b5fd;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1 2;stroke-dashoffset:1;filter:drop-shadow(0 0 6px rgba(124,58,237,.9))}
+.otp-cdot{fill:#c4b5fd;opacity:0;transform-box:fill-box;transform-origin:center}
+@keyframes otpTxtOut{to{color:transparent;-webkit-text-fill-color:transparent;caret-color:transparent}}
+@keyframes otpShake{0%,100%{transform:none}20%{transform:translateX(-7px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
+@keyframes otpWave{0%,100%{border-color:rgba(167,139,250,.34)}50%{border-color:rgba(196,181,253,.95);box-shadow:0 0 14px rgba(124,58,237,.55),inset 0 1px 0 rgba(255,255,255,.14)}}
+/* проверка кода */
+.otp-stage.is-loading .otp-tile{animation:otpWave 900ms calc(var(--i)*90ms) ease-in-out infinite}
+/* неверный код */
+.otp-stage.is-error{animation:otpShake 420ms ease-in-out}
+.otp-stage.is-error .otp-tile{border-color:rgba(248,113,113,.75);box-shadow:0 0 0 2px rgba(248,113,113,.18),inset 0 1px 0 rgba(255,255,255,.1)}
+/* успех: веер (0) -> collapse (760) -> исчезают 5 из 6 (1180) -> дуга (1260) -> кольцо замыкается (o) -> echo/лучи -> галочка */
+.otp-stage.is-success .otp-tile{animation:alpFan 560ms calc(var(--s)*45ms) var(--e) forwards,alpCol 300ms 760ms var(--e) forwards}
+.otp-stage.is-success .otp-tile:not(:nth-child(6)){animation:alpFan 560ms calc(var(--s)*45ms) var(--e) forwards,alpCol 300ms 760ms var(--e) forwards,alpOut 100ms 1180ms linear forwards}
+.otp-stage.is-success .otp-tile:nth-child(6){animation:alpFan 560ms calc(var(--s)*45ms) var(--e) forwards,alpCol 300ms 760ms var(--e) forwards,alpGlow 300ms calc(var(--o) + 230ms) ease-out forwards,alpPop 170ms calc(var(--o) + 230ms) ease-in-out}
+.otp-stage.is-success .otp-in{animation:otpTxtOut 160ms 700ms forwards}
+.otp-stage.is-success .otp-ra{animation:alpArc 200ms 1260ms cubic-bezier(.45,0,.15,1) forwards,alpOutA 150ms calc(var(--o) + 240ms) linear forwards}
+.otp-stage.is-success .otp-rb{animation:alpDraw 240ms var(--o) cubic-bezier(.45,0,.15,1) forwards}
+.otp-stage.is-success .otp-echo{animation:alpEcho 270ms calc(var(--o) + 230ms) ease-out forwards}
+.otp-stage.is-success .otp-rays{animation:alpRays 270ms calc(var(--o) + 230ms) ease-out forwards}
+.otp-stage.is-success .otp-cdot{animation:alpCdot 150ms calc(var(--o) + 300ms) ease-out forwards}
+.otp-stage.is-success .otp-check path{animation:alpDraw 250ms calc(var(--o) + 450ms) cubic-bezier(.65,0,.35,1) forwards}
+/* итог без анимации (после завершения и при prefers-reduced-motion) */
+.otp-stage.is-done .otp-tile{transform:none;opacity:0}
+.otp-stage.is-done .otp-tile:nth-child(6){opacity:1;border-color:rgba(167,139,250,.8);box-shadow:0 0 0 1px rgba(167,139,250,.35),0 0 28px rgba(124,58,237,.6),inset 0 1px 0 rgba(255,255,255,.14)}
+.otp-stage.is-success .otp-in::selection,.otp-stage.is-done .otp-in::selection{background:transparent;color:transparent}
+.otp-stage.is-done .otp-in{color:transparent;-webkit-text-fill-color:transparent;caret-color:transparent}
+.otp-stage.is-done .otp-rb,.otp-stage.is-done .otp-check path{stroke-dashoffset:0}
+.otp-stage.is-done .otp-cdot{opacity:1}
+@media (prefers-reduced-motion:reduce){.otp-stage.is-enter .otp-tile,.otp-stage.is-loading .otp-tile,.otp-stage.is-error{animation:none}}
 </style>
 </head>
 <body>
@@ -1544,20 +1598,20 @@ window.lxApplyBlur(false);document.addEventListener("DOMContentLoaded",function(
         </div>
         <button class="btn-primary" id="btn-login-submit">Войти</button>
         <div class="auth-link-or"><span>или</span></div>
-        <button type="button" class="btn-secondary auth-link-entry" id="btn-login-by-link"><svg class="tg-ic" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg><span>Войти по ссылке из письма</span></button>
+        <button type="button" class="btn-secondary auth-link-entry" id="btn-login-by-link"><svg class="tg-ic" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg><span>Войти по коду из письма</span></button>
       </div>
 
       <!-- ===== build46: ВХОД ПО ССЫЛКЕ ИЗ ПИСЬМА ===== -->
       <div id="auth-link-panel" class="alp-panel">
         <div class="alp-step" id="alp-step-email">
           <div class="alp-glass">
-            <h2 class="alp-title" id="alp-email-title">Вход по ссылке</h2>
-            <p class="alp-text" id="alp-email-text">Укажите email — мы отправим ссылку для входа без пароля.</p>
+            <h2 class="alp-title" id="alp-email-title">Вход по коду</h2>
+            <p class="alp-text" id="alp-email-text">Укажите email — мы отправим 6-значный код для входа без пароля.</p>
             <div class="field">
               <label for="alp-email">Email</label>
               <input type="email" id="alp-email" placeholder="you@example.com" autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false">
             </div>
-            <button class="btn-primary" id="alp-continue" type="button">Продолжить</button>
+            <button class="btn-primary" id="alp-continue" type="button">Получить код</button>
             <div class="alp-actions"><a class="link-inline" id="alp-back">Войти с паролем</a></div>
           </div>
         </div>
@@ -1573,6 +1627,18 @@ window.lxApplyBlur(false);document.addEventListener("DOMContentLoaded",function(
               <button class="btn-secondary" id="alp-resend" type="button">Отправить снова</button>
               <div class="alp-actions"><a class="link-inline" id="alp-change">Изменить email</a></div>
             </div>
+          </div>
+        </div>
+        <div class="alp-step" id="alp-step-code" style="display:none;">
+          <div class="alp-glass">
+            <div class="otp-stage is-enter" id="otp-stage" role="group" aria-label="Код из письма">
+              <span class="otp-tile" style="--i:0;--n:-2.5;--s:0;--z:1"><input class="otp-in" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Цифра 1 из 6" data-i="0"></span><span class="otp-tile" style="--i:1;--n:-1.5;--s:1;--z:2"><input class="otp-in" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Цифра 2 из 6" data-i="1"></span><span class="otp-tile" style="--i:2;--n:-0.5;--s:2;--z:3"><input class="otp-in" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Цифра 3 из 6" data-i="2"></span><span class="otp-tile" style="--i:3;--n:0.5;--s:2;--z:3"><input class="otp-in" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Цифра 4 из 6" data-i="3"></span><span class="otp-tile" style="--i:4;--n:1.5;--s:1;--z:2"><input class="otp-in" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Цифра 5 из 6" data-i="4"></span><span class="otp-tile" style="--i:5;--n:2.5;--s:0;--z:1"><input class="otp-in" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Цифра 6 из 6" data-i="5"></span><svg class="otp-ring" viewBox="0 0 56 66"><path class="otp-ra" pathLength="1" d="M28 62H20A16 16 0 0 1 4 46V20A16 16 0 0 1 20 4H36A16 16 0 0 1 52 20V46A16 16 0 0 1 36 62Z"/><path class="otp-rb" pathLength="1" d="M28 4H36A16 16 0 0 1 52 20V46A16 16 0 0 1 36 62H20A16 16 0 0 1 4 46V20A16 16 0 0 1 20 4Z"/></svg><span class="otp-echo"></span><svg class="otp-rays" viewBox="-70 -70 140 140"><line x1="0" y1="-44" x2="0" y2="-52" transform="rotate(0)"/><line x1="0" y1="-44" x2="0" y2="-52" transform="rotate(22.5)"/><line x1="0" y1="-44" x2="0" y2="-52" transform="rotate(45)"/><line x1="0" y1="-44" x2="0" y2="-52" transform="rotate(67.5)"/><line x1="0" y1="-44" x2="0" y2="-52" transform="rotate(90)"/><line x1="0" y1="-44" x2="0" y2="-52" transform="rotate(112.5)"/><line x1="0" y1="-44" x2="0" y2="-52" transform="rotate(135)"/><line x1="0" y1="-44" x2="0" y2="-52" transform="rotate(157.5)"/><line x1="0" y1="-44" x2="0" y2="-52" transform="rotate(180)"/><line x1="0" y1="-44" x2="0" y2="-52" transform="rotate(202.5)"/><line x1="0" y1="-44" x2="0" y2="-52" transform="rotate(225)"/><line x1="0" y1="-44" x2="0" y2="-52" transform="rotate(247.5)"/><line x1="0" y1="-44" x2="0" y2="-52" transform="rotate(270)"/><line x1="0" y1="-44" x2="0" y2="-52" transform="rotate(292.5)"/><line x1="0" y1="-44" x2="0" y2="-52" transform="rotate(315)"/><line x1="0" y1="-44" x2="0" y2="-52" transform="rotate(337.5)"/></svg><svg class="otp-check" viewBox="0 0 24 24"><path pathLength="1" d="M20 6L9 17l-5-5"/><circle class="otp-cdot" cx="20" cy="6" r="1.4"/></svg>
+            </div>
+            <h2 class="alp-title" id="otp-title" aria-live="polite">Введите код</h2>
+            <p class="alp-text" id="otp-text"></p>
+            <p class="alp-hint">Письмо не пришло? Проверьте папку «Спам». Код действует 5 минут.</p>
+            <button class="btn-secondary" id="otp-resend" type="button">Отправить снова</button>
+            <div class="alp-actions"><a class="link-inline" id="otp-change">Изменить email</a></div>
           </div>
         </div>
       </div>
@@ -8989,10 +9055,12 @@ function alpShow(step) {
   alpEl('screen-auth').classList.add('alp-on');
   alpEl('alp-step-email').style.display = step === 'email' ? 'block' : 'none';
   alpEl('alp-step-sent').style.display = step === 'sent' ? 'block' : 'none';
-  alpEl('auth-sub-text').textContent = 'Вход по ссылке из письма';
+  alpEl('alp-step-code').style.display = step === 'code' ? 'block' : 'none';
+  alpEl('auth-sub-text').textContent = (step === 'sent' || (step === 'email' && alpMode === 'confirm')) ? 'Вход по ссылке из письма' : 'Вход по коду из письма';
 }
 function alpExit() {
   alpAnimToken++;
+  otpToken++;
   const card = document.querySelector('#screen-auth .auth-card');
   if (card) card.classList.remove('link-mode');
   alpEl('screen-auth').classList.remove('alp-on');
@@ -9001,11 +9069,11 @@ function alpExit() {
 function alpSetEmailStep(mode) {
   alpMode = mode;
   const confirm = mode === 'confirm';
-  alpEl('alp-email-title').textContent = confirm ? 'Подтвердите email' : 'Вход по ссылке';
+  alpEl('alp-email-title').textContent = confirm ? 'Подтвердите email' : 'Вход по коду';
   alpEl('alp-email-text').textContent = confirm
     ? 'Вы открыли ссылку на другом устройстве. Введите email, на который пришло письмо.'
-    : 'Укажите email — мы отправим ссылку для входа без пароля.';
-  alpEl('alp-continue').textContent = confirm ? 'Войти' : 'Продолжить';
+    : 'Укажите email — мы отправим 6-значный код для входа без пароля.';
+  alpEl('alp-continue').textContent = confirm ? 'Войти' : 'Получить код';
   alpEl('alp-back').textContent = confirm ? 'Отмена' : 'Войти с паролем';
 }
 function alpSetSentTexts(kind, email) {
@@ -9189,8 +9257,8 @@ alpEl('alp-continue').addEventListener('click', async () => {
       if (!alpIsEmail(email)) { showAuthError('Введите корректный email.'); return; }
       hideAuthError();
       await runEmailLinkSignIn(email);
-    } else if (await alpSend(email, false)) {
-      alpShowSent(email);
+    } else if (await otpSend(email, false)) {
+      otpShowCode(email);
     }
   } catch (err) {
     showAuthError(translateFirebaseError(err));
@@ -9223,6 +9291,279 @@ alpEl('alp-change').addEventListener('click', () => {
   alpEl('alp-email').value = alpCurrentEmail;
   alpShow('email');
 });
+/* ===== build50: ВХОД ПО 6-ЗНАЧНОМУ КОДУ (Worker lunox-otp -> customToken -> signInWithCustomToken) ===== */
+const OTP_WORKER_URL = 'https://lunox-otp.lunox-messenger.workers.dev';
+const OTP_SENT_KEY = 'lunoxOtpSentAt';        // {email, at, cd} — пауза «Отправить снова»
+const OTP_LEN = 6;
+let otpEmail = '';
+let otpBusy = false;
+let otpToken = 0;                              // отмена устаревших анимаций/таймеров
+let otpTimer = null;
+
+const otpIns = () => Array.prototype.slice.call(document.querySelectorAll('#otp-stage .otp-in'));
+function otpStageState(cls) {
+  const st = alpEl('otp-stage');
+  st.className = 'otp-stage';
+  void st.offsetWidth;                         // перезапуск CSS-анимаций
+  if (cls) st.className = 'otp-stage ' + cls;
+  return st;
+}
+function otpMarkFilled() {
+  otpIns().forEach((el) => { el.parentNode.classList.toggle('has-v', !!el.value); el.dataset.v = el.value; });
+}
+function otpLock(on) {
+  otpIns().forEach((el) => { el.readOnly = on; if (on) { try { el.setSelectionRange(0, 0); } catch (e) {} el.blur(); } });
+}
+function otpClear(focusFirst) {
+  otpIns().forEach((el) => { el.value = ''; });
+  otpMarkFilled();
+  if (focusFirst) { const f = otpIns()[0]; if (f) f.focus(); }
+}
+function otpCode() { return otpIns().map((el) => el.value).join(''); }
+
+async function otpCall(path, payload) {
+  let res;
+  try {
+    res = await fetch(OTP_WORKER_URL + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+  } catch (e) { return { status: 0, data: { error: 'network' } }; }
+  let data = {};
+  try { data = await res.json(); } catch (e) {}
+  return { status: res.status, data };
+}
+
+/* ---- пауза между письмами ---- */
+function otpCooldownLeft(email) {
+  try {
+    const o = JSON.parse(alpLsGet(OTP_SENT_KEY) || 'null');
+    if (!o || o.email !== email) return 0;
+    return Math.max(0, (o.cd || 60) - Math.floor((Date.now() - o.at) / 1000));
+  } catch (e) { return 0; }
+}
+function otpStartCooldownUI(email) {
+  clearInterval(otpTimer);
+  otpTimer = null;
+  const btn = alpEl('otp-resend');
+  const tick = () => {
+    const left = otpCooldownLeft(email);
+    if (left > 0) { btn.disabled = true; btn.textContent = 'Отправить снова (' + left + ' с)'; }
+    else { btn.disabled = false; btn.textContent = 'Отправить снова'; clearInterval(otpTimer); otpTimer = null; }
+  };
+  tick();
+  if (otpCooldownLeft(email) > 0) otpTimer = setInterval(tick, 1000);
+}
+
+function otpErrText(err, data) {
+  if (err === 'blocked') {
+    const m = Math.max(1, Math.ceil((data.retryAfter || 900) / 60));
+    return 'Слишком много неверных попыток. Повторите через ' + m + ' мин.';
+  }
+  if (err === 'cooldown') return 'Код уже отправлен. Подождите ' + (data.retryAfter || 60) + ' с.';
+  if (err === 'rate_limited') return 'Слишком много запросов. Попробуйте позже.';
+  if (err === 'bad_email') return 'Введите корректный email.';
+  if (err === 'expired') return 'Код истёк. Запросите новый.';
+  if (err === 'mail_failed') return 'Не удалось отправить письмо. Попробуйте ещё раз.';
+  if (err === 'disabled') return 'Аккаунт отключён.';
+  if (err === 'network') return 'Нет связи с сервером. Проверьте интернет.';
+  return 'Не удалось выполнить вход. Попробуйте ещё раз.';
+}
+
+/* ---- отправка кода (экран 1) ---- */
+async function otpSend(email, force) {
+  hideAuthError();
+  if (!alpIsEmail(email)) { showAuthError('Введите корректный email.'); return false; }
+  if (isTempEmailDomain(email)) { showAuthError('Используйте постоянный email'); return false; }
+  if (await isEmailBanned(email)) { showAuthError(BANNED_MSG); return false; }
+  if (!force && otpCooldownLeft(email) > 0) return true;       // код только что отправлен
+  const r = await otpCall('/send', { email });
+  if (r.status === 200 && r.data.ok) {
+    alpLsSet(OTP_SENT_KEY, JSON.stringify({ email, at: Date.now(), cd: r.data.cooldown || 60 }));
+    return true;
+  }
+  if (r.data && r.data.error === 'cooldown') {                 // письмо уже уходило — пускаем на экран кода
+    alpLsSet(OTP_SENT_KEY, JSON.stringify({ email, at: Date.now() - ((r.data.cooldown || 60) - (r.data.retryAfter || 60)) * 1000, cd: 60 }));
+    return true;
+  }
+  showAuthError(otpErrText(r.data && r.data.error, r.data || {}));
+  return false;
+}
+
+/* ---- экран 2: ввод кода ---- */
+function otpShowCode(email) {
+  otpEmail = email;
+  otpToken++;
+  otpBusy = false;
+  const t = alpEl('otp-text');
+  t.textContent = '';
+  t.appendChild(document.createTextNode('Мы отправили 6-значный код на '));
+  const b = document.createElement('b');
+  b.textContent = email;
+  t.appendChild(b);
+  alpEl('otp-title').textContent = 'Введите код';
+  alpShow('code');
+  otpLock(false);
+  otpClear(false);
+  otpStageState(alpReduced() ? '' : 'is-enter');
+  otpStartCooldownUI(email);
+  setTimeout(() => { const f = otpIns()[0]; if (f && alpEl('alp-step-code').style.display !== 'none') f.focus(); }, 80);
+}
+
+function otpFill(from, digits) {
+  const stEl = alpEl('otp-stage');
+  if (stEl.classList.contains('is-error')) stEl.className = 'otp-stage';
+  const ins = otpIns();
+  let k = from;
+  for (let i = 0; i < digits.length && k < OTP_LEN; i++, k++) ins[k].value = digits[i];
+  otpMarkFilled();
+  const next = ins[Math.min(k, OTP_LEN - 1)];
+  if (next) next.focus();
+  if (otpCode().length === OTP_LEN) otpSubmit();
+}
+
+async function otpSubmit() {
+  if (otpBusy) return;
+  const code = otpCode();
+  if (!/^\d{6}$/.test(code)) return;
+  otpBusy = true;
+  const token = ++otpToken;
+  hideAuthError();
+  otpLock(true);
+  otpStageState('is-loading');
+  const r = await otpCall('/verify', { email: otpEmail, code });
+  if (token !== otpToken) return;                                // экран закрыли или перезапустили
+  const d = r.data || {};
+
+  if (r.status === 200 && d.ok && d.token) {
+    emailLinkInProgress = true;                                  // onAuthStateChanged не стартует приложение до конца анимации
+    try {
+      await auth.signInWithCustomToken(d.token);
+    } catch (err) {
+      emailLinkInProgress = false;
+      if (token !== otpToken) return;
+      otpFail(translateFirebaseError(err), false);
+      return;
+    }
+    alpLsDel(OTP_SENT_KEY);
+    alpEl('otp-title').textContent = 'Вход выполнен';
+    alpEl('otp-text').textContent = 'Открываем Lunox.';
+    if (alpReduced()) otpStageState('is-done');
+    else {
+      otpStageState('is-success');
+      await alpSleep(2250);                                      // o(1500) + 450 + 250 мс финала + запас
+      alpEl('otp-stage').className = 'otp-stage is-done';
+    }
+    await alpSleep(450);
+    otpBusy = false;
+    await alpFinishApp();                                        // уже вошли: в любом случае запускаем приложение
+    return;
+  }
+
+  if (r.status === 200 && d.ok && d.newUser) {                   // аккаунта с таким email нет — на регистрацию
+    otpBusy = false;
+    await alpFinishApp();
+    isRegisterMode = true;
+    applyAuthModeUI();
+    const regEmail = alpEl('input-email');
+    if (regEmail) regEmail.value = otpEmail;
+    showAuthError('Аккаунт с таким email не найден. Завершите регистрацию.');
+    return;
+  }
+
+  if (d.error === 'mfa') {                                       // custom token обходит 2FA — только вход по паролю
+    otpBusy = false;
+    await alpFinishApp();
+    showAuthError('Для этого аккаунта включена 2FA. Войдите по паролю.');
+    return;
+  }
+
+  if (d.error === 'invalid') {
+    const left = d.left | 0;
+    otpFail('Неверный код.' + (left > 0 ? ' Осталось попыток: ' + left + '.' : ''), true);
+    return;
+  }
+  if (d.error === 'blocked') {
+    otpFail(otpErrText('blocked', d), false);
+    otpLock(true);                                               // поля заблокированы на время блокировки
+    otpBlockUntil(Date.now() + (d.retryAfter || 900) * 1000, token);
+    return;
+  }
+  otpFail(otpErrText(d.error || (r.status === 0 ? 'network' : ''), d), d.error === 'expired' ? false : true);
+}
+
+function otpFail(msg, retypeable) {
+  otpBusy = false;
+  showAuthError(msg);
+  if (alpReduced()) otpStageState('');
+  else otpStageState('is-error');
+  otpLock(false);
+  otpClear(!!retypeable);
+  if (!retypeable) otpIns().forEach((el) => el.blur());
+}
+// Пока идёт блокировка, поля и кнопка отправки недоступны
+function otpBlockUntil(until, token) {
+  otpLock(true);
+  const btn = alpEl('otp-resend');
+  clearInterval(otpTimer);
+  const tick = () => {
+    if (token !== otpToken) { clearInterval(otpTimer); otpTimer = null; return; }
+    const left = Math.ceil((until - Date.now()) / 1000);
+    if (left > 0) { btn.disabled = true; btn.textContent = 'Повторить через ' + Math.floor(left / 60) + ':' + String(left % 60).padStart(2, '0'); }
+    else { clearInterval(otpTimer); otpTimer = null; otpLock(false); otpStartCooldownUI(otpEmail); hideAuthError(); const f = otpIns()[0]; if (f) f.focus(); }
+  };
+  tick();
+  otpTimer = setInterval(tick, 1000);
+}
+
+/* ---- события полей ---- */
+otpIns().forEach((el, i, all) => {
+  el.addEventListener('input', () => {
+    let digits = el.value.replace(/\D/g, '');
+    const pv = el.dataset.v || '';
+    if (pv && digits.length === 2) digits = digits.charAt(digits.indexOf(pv) === 0 ? 1 : 0);   // набрали цифру в занятой ячейке — заменяем
+    el.value = '';
+    if (!digits) { otpMarkFilled(); return; }
+    otpFill(i, digits);                                          // 1 цифра, автозаполнение или вставка целиком
+  });
+  el.addEventListener('keydown', (e) => {
+    if (e.key === 'Backspace') {
+      if (!el.value && i > 0) { e.preventDefault(); all[i - 1].value = ''; all[i - 1].focus(); otpMarkFilled(); }
+    } else if (e.key === 'ArrowLeft' && i > 0) { e.preventDefault(); all[i - 1].focus(); }
+    else if (e.key === 'ArrowRight' && i < OTP_LEN - 1) { e.preventDefault(); all[i + 1].focus(); }
+    else if (e.key === 'Enter') { e.preventDefault(); otpSubmit(); }
+  });
+  el.addEventListener('paste', (e) => {
+    const txt = (e.clipboardData || window.clipboardData).getData('text') || '';
+    const digits = txt.replace(/\D/g, '').slice(0, OTP_LEN);
+    if (!digits) return;
+    e.preventDefault();
+    otpFill(digits.length === OTP_LEN ? 0 : i, digits);
+  });
+  el.addEventListener('focus', () => { try { el.select(); } catch (e) {} });
+});
+alpEl('otp-resend').addEventListener('click', async () => {
+  const email = otpEmail;
+  if (!email || otpBusy || otpCooldownLeft(email) > 0) return;
+  const btn = alpEl('otp-resend');
+  btn.disabled = true;
+  try {
+    if (await otpSend(email, true)) { hideAuthError(); otpClear(true); otpStageState(''); otpStartCooldownUI(email); }
+    else otpStartCooldownUI(email);
+  } catch (err) {
+    showAuthError(otpErrText('', {}));
+    otpStartCooldownUI(email);
+  }
+});
+alpEl('otp-change').addEventListener('click', () => {
+  if (otpBusy) return;
+  otpToken++;
+  otpBusy = false;
+  clearInterval(otpTimer);
+  otpTimer = null;
+  hideAuthError();
+  alpSetEmailStep('send');
+  alpEl('alp-email').value = otpEmail;
+  alpShow('email');
+});
+
 initEmailLinkSignIn();
 
 // Подставляем запомненный email при загрузке экрана входа.
