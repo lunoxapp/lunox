@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Личный кабинет — Lunox</title>
+  <meta name="description" content="Личный кабинет Lunox: профиль, подписка, луны и статистика аккаунта.">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237c3aed' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    /* ============================================================
+       Lunox — личный кабинет
+       Палитра лендинга: белый + фиолетовый, стеклянные карточки
+       ============================================================ */
+    :root {
+      --bg: #ffffff;
+      --bg-alt: #f8f7fc;
+      --accent: #7c3aed;
+      --accent-light: #a78bfa;
+      --accent-soft: #ddd6fe;
+      --heading: #1a0f2e;
+      --text: #4a4a5e;
+      --muted: #8b8b9e;
+      --danger: #dc2626;
+      --ok: #16a34a;
+      --gradient: linear-gradient(135deg, #7c3aed, #a78bfa);
+      --shadow: 0 1px 2px rgba(26, 15, 46, 0.04), 0 8px 24px rgba(124, 58, 237, 0.07);
+      --shadow-hover: 0 2px 4px rgba(26, 15, 46, 0.05), 0 20px 44px rgba(124, 58, 237, 0.17);
+      --font-display: "Manrope", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --ease: cubic-bezier(0.16, 1, 0.3, 1);
+      --radius: 24px;
+      --header-h: 68px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    [hidden] { display: none !important; }
+
+    html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+
+    body {
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(180deg, #faf8ff 0%, #ffffff 70%) fixed;
+      color: var(--text);
+      font-size: 16px;
+      line-height: 1.6;
+      min-height: 100vh;
+      min-height: 100dvh;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+      overflow-x: hidden;
+    }
+
+    svg { display: block; }
+    a { color: inherit; text-decoration: none; }
+    button, input { font: inherit; color: inherit; }
+    button { background: none; border: none; cursor: pointer; touch-action: manipulation; }
+    ::selection { background: rgba(124, 58, 237, 0.16); }
+
+    a:focus-visible, button:focus-visible, input:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .icon { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .icon-fill { fill: currentColor; stroke: none; }
+
+    .container { width: 100%; max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+
+    /* ---------- Фоновое свечение (даёт стеклу, что размывать) ---------- */
+    .bg-glow { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+    .bg-glow i {
+      position: absolute; border-radius: 50%; filter: blur(90px);
+      animation: glow-drift 16s ease-in-out infinite;
+    }
+    .bg-glow i:nth-child(1) { width: 560px; height: 560px; top: -200px; left: 8%;  background: radial-gradient(circle, rgba(124, 58, 237, 0.20), transparent 65%); }
+    .bg-glow i:nth-child(2) { width: 520px; height: 520px; top: 120px;  right: -120px; background: radial-gradient(circle, rgba(167, 139, 250, 0.26), transparent 65%); animation-delay: -6s; animation-direction: reverse; }
+    .bg-glow i:nth-child(3) { width: 480px; height: 480px; bottom: -180px; left: -100px; background: radial-gradient(circle, rgba(124, 58, 237, 0.14), transparent 65%); animation-delay: -10s; }
+    @keyframes glow-drift { 0%, 100% { translate: 0 0; } 50% { translate: 26px 20px; } }
+
+    /* ---------- Шапка ---------- */
+    .header {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100; height: var(--header-h);
+      background: rgba(255, 255, 255, 0.72);
+      backdrop-filter: saturate(180%) blur(16px);
+      -webkit-backdrop-filter: saturate(180%) blur(16px);
+      border-bottom: 1px solid rgba(124, 58, 237, 0.08);
+    }
+    .header-inner { height: var(--header-h); display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .brand { display: inline-flex; align-items: center; gap: 10px; }
+    .brand-mark {
+      width: 34px; height: 34px; border-radius: 10px; background: var(--gradient); color: #fff;
+      display: grid; place-items: center; box-shadow: 0 4px 14px rgba(124, 58, 237, 0.28);
+    }
+    .brand-mark .icon { width: 18px; height: 18px; }
+    .brand-name { font-family: var(--font-display); font-size: 19px; font-weight: 700; color: var(--heading); letter-spacing: -0.02em; }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .nav-link {
+      font-size: 14.5px; font-weight: 500; padding: 8px 14px; border-radius: 10px;
+      transition: color 0.3s var(--ease), background-color 0.3s var(--ease);
+    }
+    .nav-link:hover { color: var(--accent); background: rgba(124, 58, 237, 0.06); }
+
+    /* ---------- Кнопки ---------- */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+      font-weight: 600; border-radius: 14px; white-space: nowrap; cursor: pointer;
+      transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease), background-color 0.3s var(--ease), border-color 0.3s var(--ease), opacity 0.2s;
+      will-change: transform;
+    }
+    .btn .icon { width: 18px; height: 18px; flex-shrink: 0; }
+    .btn-lg { padding: 15px 28px; font-size: 16px; }
+    .btn-md { padding: 12px 20px; font-size: 15px; border-radius: 13px; }
+    .btn-sm { padding: 10px 18px; font-size: 14px; border-radius: 11px; }
+    .btn-primary { background: var(--gradient); color: #fff; box-shadow: 0 6px 20px rgba(124, 58, 237, 0.3); }
+    .btn-primary:hover { transform: scale(1.02); box-shadow: 0 10px 28px rgba(124, 58, 237, 0.4); }
+    .btn-primary:active { transform: scale(0.96); }
+    .btn-secondary { background: rgba(255, 255, 255, 0.85); color: var(--accent); border: 1.5px solid rgba(124, 58, 237, 0.28); box-shadow: var(--shadow); }
+    .btn-secondary:hover { transform: scale(1.02); border-color: rgba(124, 58, 237, 0.5); box-shadow: var(--shadow-hover); }
+    .btn-secondary:active { transform: scale(0.96); }
+    .btn[disabled] { opacity: 0.6; pointer-events: none; }
+    .btn-block { width: 100%; }
+
+    .spinner {
+      width: 18px; height: 18px; border-radius: 50%;
+      border: 2.5px solid rgba(255, 255, 255, 0.4); border-top-color: #fff;
+      animation: spin 0.7s linear infinite;
+    }
+    .spinner-lg { width: 38px; height: 38px; border-width: 3.5px; border-color: rgba(124, 58, 237, 0.18); border-top-color: var(--accent); }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ---------- Стекло ---------- */
+    .glass {
+      position: relative;
+      background: rgba(255, 255, 255, 0.82);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      border-radius: var(--radius);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 0 0 1px rgba(124, 58, 237, 0.07), 0 18px 48px rgba(124, 58, 237, 0.10);
+    }
+    @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+      .glass {
+        background: rgba(255, 255, 255, 0.56);
+        backdrop-filter: blur(22px) saturate(170%);
+        -webkit-backdrop-filter: blur(22px) saturate(170%);
+      }
+    }
+
+    /* ---------- Каркас страницы ---------- */
+    main { position: relative; z-index: 1; padding: calc(var(--header-h) + 40px) 0 72px; min-height: 100vh; min-height: 100dvh; }
+
+    .view-center { display: grid; place-items: center; min-height: calc(100vh - var(--header-h) - 112px); min-height: calc(100dvh - var(--header-h) - 112px); }
+
+    .eyebrow { display: inline-block; font-size: 13px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+
+    .gradient-text {
+      background: var(--gradient); -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent; color: transparent;
+    }
+
+    @keyframes rise-in { from { opacity: 0; translate: 0 22px; } to { opacity: 1; translate: 0 0; } }
+    .rise { opacity: 0; animation: rise-in 0.7s var(--ease) forwards; animation-delay: var(--d, 0ms); }
+
+    /* ---------- Вход ---------- */
+    .login-card { width: 100%; max-width: 440px; padding: 40px 36px 32px; }
+    .login-logo {
+      width: 64px; height: 64px; border-radius: 19px; background: var(--gradient); color: #fff;
+      display: grid; place-items: center; margin: 0 auto 22px; box-shadow: 0 12px 32px rgba(124, 58, 237, 0.35);
+    }
+    .login-logo .icon { width: 32px; height: 32px; }
+    .login-title { font-family: var(--font-display); font-size: 26px; font-weight: 800; letter-spacing: -0.02em; color: var(--heading); text-align: center; line-height: 1.2; }
+    .login-sub { text-align: center; margin: 8px 0 26px; font-size: 14.5px; color: var(--text); }
+
+    .field { margin-bottom: 14px; }
+    .field label { display: block; font-size: 13px; font-weight: 600; color: var(--heading); margin-bottom: 6px; }
+    .input-wrap { position: relative; }
+    .input {
+      width: 100%; padding: 13px 16px; font-size: 16px; color: var(--heading);
+      background: rgba(255, 255, 255, 0.85); border: 1.5px solid rgba(124, 58, 237, 0.16); border-radius: 13px;
+      transition: border-color 0.25s var(--ease), box-shadow 0.25s var(--ease);
+    }
+    .input::placeholder { color: #b4b4c4; }
+    .input:hover { border-color: rgba(124, 58, 237, 0.32); }
+    .input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.13); }
+    .input-wrap .input { padding-right: 48px; }
+    .eye {
+      position: absolute; right: 6px; top: 50%; translate: 0 -50%; width: 38px; height: 38px;
+      display: grid; place-items: center; border-radius: 10px; color: var(--muted);
+      transition: color 0.25s var(--ease), background-color 0.25s var(--ease);
+    }
+    .eye:hover { color: var(--accent); background: rgba(124, 58, 237, 0.07); }
+    .eye .icon { width: 20px; height: 20px; }
+    .eye .icon-off { display: none; }
+    .eye.on .icon-on { display: none; }
+    .eye.on .icon-off { display: block; }
+
+    .notice {
+      display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.45;
+      padding: 11px 14px; border-radius: 12px; margin-bottom: 14px;
+    }
+    .notice .icon { width: 18px; height: 18px; margin-top: 1px; flex-shrink: 0; }
+    .notice-error { background: rgba(220, 38, 38, 0.07); border: 1px solid rgba(220, 38, 38, 0.2); color: #b91c1c; }
+    .notice-ok { background: rgba(22, 163, 74, 0.08); border: 1px solid rgba(22, 163, 74, 0.22); color: #15803d; }
+
+    .login-links { display: flex; justify-content: center; margin-top: 16px; }
+    .link-btn { font-size: 14px; font-weight: 600; color: var(--accent); padding: 6px 10px; border-radius: 8px; transition: background-color 0.25s var(--ease); }
+    .link-btn:hover { background: rgba(124, 58, 237, 0.07); }
+    .login-foot { margin-top: 20px; padding-top: 18px; border-top: 1px solid rgba(124, 58, 237, 0.1); text-align: center; font-size: 14px; color: var(--muted); }
+    .login-foot a { color: var(--accent); font-weight: 600; }
+    .login-foot a:hover { text-decoration: underline; }
+
+    /* ---------- Кабинет ---------- */
+    .page-head { margin-bottom: 28px; }
+    .page-title { font-family: var(--font-display); font-size: clamp(28px, 4.6vw, 42px); font-weight: 800; line-height: 1.12; letter-spacing: -0.03em; color: var(--heading); overflow-wrap: anywhere; }
+    .page-sub { margin-top: 8px; color: var(--text); font-size: 16px; }
+
+    .grid { display: grid; gap: 20px; }
+    .grid-2 { grid-template-columns: 1.45fr 1fr; }
+    .stack { display: grid; gap: 20px; }
+
+    .card { padding: 28px; }
+    .card-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+    .card-icon {
+      width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; flex-shrink: 0;
+      background: rgba(124, 58, 237, 0.10); color: var(--accent);
+    }
+    .card-icon .icon { width: 20px; height: 20px; }
+    .card-title { font-family: var(--font-display); font-size: 18px; font-weight: 700; letter-spacing: -0.01em; color: var(--heading); }
+    .card-head .card-action { margin-left: auto; }
+
+    /* Профиль */
+    .profile { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+    .avatar {
+      width: 96px; height: 96px; border-radius: 50%; flex-shrink: 0; position: relative; overflow: hidden;
+      background: var(--gradient); color: #fff; display: grid; place-items: center;
+      font-family: var(--font-display); font-size: 36px; font-weight: 800; letter-spacing: -0.02em;
+      box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.9), 0 0 0 5px rgba(124, 58, 237, 0.2), 0 14px 34px rgba(124, 58, 237, 0.3);
+    }
+    .avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .profile-main { flex: 1; min-width: 220px; }
+    .profile-name { font-family: var(--font-display); font-size: 26px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.2; color: var(--heading); overflow-wrap: anywhere; }
+    .profile-user { color: var(--accent); font-weight: 600; font-size: 16px; margin-top: 2px; overflow-wrap: anywhere; }
+    .profile-bio { margin-top: 8px; font-size: 14.5px; color: var(--text); overflow-wrap: anywhere; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .chip {
+      display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600;
+      padding: 5px 11px; border-radius: 999px; background: rgba(124, 58, 237, 0.08); color: var(--accent); max-width: 100%;
+    }
+    .chip .icon { width: 14px; height: 14px; flex-shrink: 0; }
+    .chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .chip-ok { background: rgba(22, 163, 74, 0.1); color: #15803d; }
+    .chip-warn { background: rgba(217, 119, 6, 0.1); color: #b45309; }
+    .profile-actions { display: flex; gap: 10px; flex-wrap: wrap; align-self: flex-start; }
+
+    /* Подписка */
+    .plan-now { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+    .plan-name { font-family: var(--font-display); font-size: 44px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; }
+    .plan-state { font-size: 13px; font-weight: 600; padding: 4px 11px; border-radius: 999px; background: rgba(124, 58, 237, 0.08); color: var(--accent); }
+    .plan-state.warn { background: rgba(217, 119, 6, 0.1); color: #b45309; }
+    .plan-meta { margin-top: 6px; color: var(--text); font-size: 15px; min-height: 24px; }
+
+    .ladder { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 22px; }
+    .step {
+      text-align: center; padding: 12px 4px 11px; border-radius: 14px; font-size: 13.5px; font-weight: 700;
+      background: rgba(124, 58, 237, 0.05); color: var(--muted); border: 1.5px solid transparent;
+      transition: background-color 0.4s var(--ease), color 0.4s var(--ease), border-color 0.4s var(--ease), transform 0.4s var(--ease);
+    }
+    .step small { display: block; font-size: 11px; font-weight: 600; opacity: 0.85; margin-top: 1px; letter-spacing: 0.02em; }
+    .step.reached { background: rgba(124, 58, 237, 0.12); color: var(--accent); }
+    .step.current {
+      background: var(--gradient); color: #fff; transform: translateY(-3px);
+      box-shadow: 0 10px 24px rgba(124, 58, 237, 0.35);
+    }
+    .card-foot { margin-top: 22px; display: flex; gap: 10px; flex-wrap: wrap; }
+
+    /* Луны */
+    .luna-card { display: flex; flex-direction: column; }
+    .luna-balance { display: flex; align-items: center; gap: 16px; }
+    .luna-orb {
+      width: 64px; height: 64px; border-radius: 20px; background: var(--gradient); color: #fff;
+      display: grid; place-items: center; flex-shrink: 0; box-shadow: 0 12px 30px rgba(124, 58, 237, 0.35);
+    }
+    .luna-orb .icon { width: 32px; height: 32px; }
+    .luna-num { font-family: var(--font-display); font-size: 46px; font-weight: 800; letter-spacing: -0.03em; line-height: 1; color: var(--heading); font-variant-numeric: tabular-nums; }
+    .luna-word { margin-top: 4px; font-size: 15px; color: var(--muted); font-weight: 500; }
+    .luna-text { margin-top: 18px; font-size: 14.5px; color: var(--text); }
+    .luna-card .card-foot { margin-top: auto; padding-top: 22px; }
+
+    /* Статистика */
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+    .stat { padding: 18px; border-radius: 18px; background: rgba(255, 255, 255, 0.6); border: 1px solid rgba(124, 58, 237, 0.08); }
+    .stat-icon { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: rgba(124, 58, 237, 0.10); color: var(--accent); margin-bottom: 14px; }
+    .stat-icon .icon { width: 18px; height: 18px; }
+    .stat-val { font-family: var(--font-display); font-size: 30px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; color: var(--heading); font-variant-numeric: tabular-nums; min-height: 33px; }
+    .stat-val.small { font-size: 20px; padding-top: 6px; min-height: 33px; }
+    .stat-label { margin-top: 4px; font-size: 13.5px; color: var(--muted); font-weight: 500; }
+    .skel { display: inline-block; width: 70px; height: 28px; border-radius: 8px; vertical-align: middle; background: linear-gradient(90deg, rgba(124, 58, 237, 0.07) 25%, rgba(124, 58, 237, 0.15) 50%, rgba(124, 58, 237, 0.07) 75%); background-size: 200% 100%; animation: shimmer 1.3s linear infinite; }
+    @keyframes shimmer { to { background-position: -200% 0; } }
+    .stats-note { margin-top: 14px; font-size: 13px; color: var(--muted); }
+
+    /* Ссылки */
+    .links { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .link-card {
+      display: flex; flex-direction: column; gap: 6px; padding: 24px; border-radius: var(--radius);
+      transition: transform 0.35s var(--ease), box-shadow 0.35s var(--ease);
+    }
+    .link-card:hover { transform: translateY(-4px); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 0 0 1px rgba(124, 58, 237, 0.16), 0 22px 50px rgba(124, 58, 237, 0.2); }
+    .link-card:active { transform: scale(0.98); }
+    .link-icon { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; background: var(--gradient); color: #fff; margin-bottom: 12px; box-shadow: 0 8px 20px rgba(124, 58, 237, 0.28); }
+    .link-icon .icon { width: 22px; height: 22px; }
+    .link-title { font-family: var(--font-display); font-size: 18px; font-weight: 700; color: var(--heading); display: flex; align-items: center; gap: 8px; }
+    .link-title .icon { width: 16px; height: 16px; color: var(--accent); transition: transform 0.35s var(--ease); }
+    .link-card:hover .link-title .icon { transform: translateX(4px); }
+    .link-text { font-size: 14.5px; color: var(--text); }
+    .link-card.is-disabled { pointer-events: none; opacity: 0.7; }
+    .link-card.is-disabled .link-title .icon { display: none; }
+    .soon { display: none; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; padding: 3px 9px; border-radius: 999px; background: rgba(124, 58, 237, 0.1); color: var(--accent); }
+    .link-card.is-disabled .soon { display: inline-block; }
+
+    .section-label { display: flex; align-items: center; gap: 12px; margin: 36px 0 16px; }
+    .section-label .card-title { font-size: 20px; }
+
+    /* Загрузка и ошибки */
+    .center-state { display: grid; justify-items: center; gap: 16px; text-align: center; color: var(--muted); font-size: 15px; }
+    .fatal { max-width: 440px; padding: 32px; text-align: center; }
+    .fatal h2 { font-family: var(--font-display); color: var(--heading); font-size: 22px; margin-bottom: 8px; }
+    .fatal p { margin-bottom: 20px; font-size: 15px; }
+    .banner { margin-bottom: 20px; }
+
+    /* ---------- Адаптив ---------- */
+    @media (max-width: 960px) {
+      .grid-2 { grid-template-columns: 1fr; }
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .links { grid-template-columns: 1fr; }
+      .link-card { flex-direction: row; flex-wrap: wrap; align-items: center; column-gap: 16px; row-gap: 2px; }
+      .link-icon { margin-bottom: 0; grid-row: span 2; }
+      .link-card .link-title, .link-card .link-text { flex: 1 1 calc(100% - 64px); }
+    }
+    @media (max-width: 640px) {
+      .container { padding: 0 16px; }
+      main { padding-top: calc(var(--header-h) + 24px); }
+      .nav-link { display: none; }
+      .login-card { padding: 32px 22px 26px; }
+      .card { padding: 22px 18px; }
+      .profile { gap: 18px; }
+      .avatar { width: 80px; height: 80px; font-size: 30px; }
+      .profile-name { font-size: 22px; }
+      .profile-actions { width: 100%; }
+      .profile-actions .btn { flex: 1; }
+      .plan-name { font-size: 36px; }
+      .luna-num { font-size: 38px; }
+      .ladder { gap: 5px; }
+      .step { font-size: 12.5px; padding: 10px 2px 9px; border-radius: 12px; }
+      .step small { display: none; }
+      .stats { gap: 10px; }
+      .stat { padding: 14px; }
+      .stat-val { font-size: 25px; }
+      .card-foot .btn { flex: 1; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+      .rise { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ===================== ИКОНКИ ===================== -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <defs>
+      <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></symbol>
+      <symbol id="i-user" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+      <symbol id="i-star" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></symbol>
+      <symbol id="i-chart" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></symbol>
+      <symbol id="i-send" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></symbol>
+      <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></symbol>
+      <symbol id="i-users" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+      <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></symbol>
+      <symbol id="i-wrench" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></symbol>
+      <symbol id="i-cpu" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></symbol>
+      <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></symbol>
+      <symbol id="i-arrow" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></symbol>
+      <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></symbol>
+      <symbol id="i-mail" viewBox="0 0 24 24"><path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><polyline points="22 6 12 13 2 6"/></symbol>
+      <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></symbol>
+      <symbol id="i-eye" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></symbol>
+      <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></symbol>
+      <symbol id="i-refresh" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></symbol>
+    </defs>
+  </svg>
+
+  <div class="bg-glow" aria-hidden="true"><i></i><i></i><i></i></div>
+
+  <!-- ===================== HEADER ===================== -->
+  <header class="header">
+    <div class="container header-inner">
+      <a href="index.html" class="brand" aria-label="Lunox — на главную">
+        <span class="brand-mark"><svg class="icon"><use href="#i-moon"/></svg></span>
+        <span class="brand-name">Lunox</span>
+      </a>
+      <div class="header-actions">
+        <a href="index.html" class="nav-link">На главную</a>
+        <a href="https://lunoxapp.online" class="btn btn-primary btn-sm">Открыть Lunox</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+
+      <!-- ---------- Загрузка ---------- -->
+      <section id="view-loading" class="view-center" aria-live="polite">
+        <div class="center-state">
+          <div class="spinner spinner-lg" role="status" aria-label="Загрузка"></div>
+          <span>Загружаем кабинет</span>
+        </div>
+      </section>
+
+      <!-- ---------- Критическая ошибка (SDK не загрузился) ---------- -->
+      <section id="view-fatal" class="view-center" hidden>
+        <div class="glass fatal">
+          <h2>Не удалось загрузить кабинет</h2>
+          <p id="fatal-text">Проверьте подключение к интернету и попробуйте ещё раз.</p>
+          <button type="button" class="btn btn-primary btn-md" id="fatal-retry">Обновить страницу</button>
+        </div>
+      </section>
+
+      <!-- ---------- Вход ---------- -->
+      <section id="view-login" class="view-center" hidden>
+        <div class="glass login-card rise">
+          <div class="login-logo"><svg class="icon"><use href="#i-moon"/></svg></div>
+          <h1 class="login-title">Вход в кабинет</h1>
+          <p class="login-sub">Используйте email и пароль от аккаунта Lunox</p>
+
+          <div id="login-notice" class="notice" role="alert" hidden>
+            <svg class="icon"><use href="#i-alert"/></svg><span id="login-notice-text"></span>
+          </div>
+
+          <form id="login-form" novalidate>
+            <div class="field">
+              <label for="login-email">Email</label>
+              <input class="input" id="login-email" type="email" autocomplete="email" inputmode="email" placeholder="name@example.com" required>
+            </div>
+            <div class="field">
+              <label for="login-password">Пароль</label>
+              <div class="input-wrap">
+                <input class="input" id="login-password" type="password" autocomplete="current-password" placeholder="Ваш пароль" required>
+                <button type="button" class="eye" id="login-eye" aria-label="Показать пароль">
+                  <svg class="icon icon-on"><use href="#i-eye"/></svg>
+                  <svg class="icon icon-off"><use href="#i-eye-off"/></svg>
+                </button>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-lg btn-block" id="login-submit">
+              <span id="login-submit-text">Войти</span>
+            </button>
+          </form>
+
+          <div class="login-links">
+            <button type="button" class="link-btn" id="login-reset">Забыли пароль?</button>
+          </div>
+          <p class="login-foot">Нет аккаунта? <a href="https://lunoxapp.online">Зарегистрируйтесь в Lunox</a></p>
+        </div>
+      </section>
+
+      <!-- ---------- Кабинет ---------- -->
+      <section id="view-cabinet" hidden>
+        <div class="page-head rise">
+          <span class="eyebrow">Личный кабинет</span>
+          <h1 class="page-title">Здравствуйте, <span class="gradient-text" id="hello-name">друг</span></h1>
+          <p class="page-sub">Профиль, подписка, луны и статистика вашего аккаунта Lunox.</p>
+        </div>
+
+        <div id="cab-banner" class="notice notice-error banner" role="alert" hidden>
+          <svg class="icon"><use href="#i-alert"/></svg><span id="cab-banner-text"></span>
+        </div>
+
+        <div class="stack">
+
+          <!-- Профиль -->
+          <article class="glass card rise" style="--d:60ms" aria-labelledby="t-profile">
+            <div class="card-head">
+              <span class="card-icon"><svg class="icon"><use href="#i-user"/></svg></span>
+              <h2 class="card-title" id="t-profile">Профиль</h2>
+            </div>
+            <div class="profile">
+              <div class="avatar" id="avatar" aria-hidden="true"><span id="avatar-initials">L</span></div>
+              <div class="profile-main">
+                <div class="profile-name" id="p-name">—</div>
+                <div class="profile-user" id="p-username" hidden></div>
+                <div class="profile-bio" id="p-bio" hidden></div>
+                <div class="chips">
+                  <span class="chip" id="p-email-chip" hidden><svg class="icon"><use href="#i-mail"/></svg><span id="p-email"></span></span>
+                  <span class="chip chip-ok" id="p-verified" hidden><svg class="icon"><use href="#i-check"/></svg><span>Почта подтверждена</span></span>
+                  <span class="chip chip-warn" id="p-unverified" hidden><svg class="icon"><use href="#i-alert"/></svg><span>Почта не подтверждена</span></span>
+                </div>
+              </div>
+              <div class="profile-actions">
+                <a href="https://lunoxapp.online" class="btn btn-primary btn-md">Открыть Lunox<svg class="icon"><use href="#i-arrow"/></svg></a>
+                <button type="button" class="btn btn-secondary btn-md" id="logout-btn"><svg class="icon"><use href="#i-logout"/></svg>Выйти</button>
+              </div>
+            </div>
+          </article>
+
+          <div class="grid grid-2">
+            <!-- Подписка -->
+            <article class="glass card rise" style="--d:120ms" aria-labelledby="t-plan">
+              <div class="card-head">
+                <span class="card-icon"><svg class="icon"><use href="#i-star"/></svg></span>
+                <h2 class="card-title" id="t-plan">Подписка</h2>
+              </div>
+              <div class="plan-now">
+                <div class="plan-name gradient-text" id="plan-name">Free</div>
+                <span class="plan-state" id="plan-state">Бесплатный тариф</span>
+              </div>
+              <p class="plan-meta" id="plan-meta"></p>
+              <div class="ladder" id="ladder" role="list" aria-label="Тарифы Lunox"></div>
+              <div class="card-foot">
+                <a href="index.html#pricing" class="btn btn-secondary btn-md">Сравнить тарифы</a>
+              </div>
+            </article>
+
+            <!-- Луны -->
+            <article class="glass card luna-card rise" style="--d:180ms" aria-labelledby="t-luna">
+              <div class="card-head">
+                <span class="card-icon"><svg class="icon icon-fill"><use href="#i-moon"/></svg></span>
+                <h2 class="card-title" id="t-luna">Луны</h2>
+              </div>
+              <div class="luna-balance">
+                <div class="luna-orb"><svg class="icon icon-fill"><use href="#i-moon"/></svg></div>
+                <div>
+                  <div class="luna-num" id="luna-num">0</div>
+                  <div class="luna-word" id="luna-word">лун на балансе</div>
+                </div>
+              </div>
+              <p class="luna-text">Луны — внутренняя валюта Lunox. Тратьте их на рамки для аватара, фоны и оформление профиля.</p>
+              <div class="card-foot">
+                <a href="https://lunoxapp.online" class="btn btn-primary btn-md">В магазин<svg class="icon"><use href="#i-arrow"/></svg></a>
+              </div>
+            </article>
+          </div>
+
+          <!-- Статистика -->
+          <article class="glass card rise" style="--d:240ms" aria-labelledby="t-stats">
+            <div class="card-head">
+              <span class="card-icon"><svg class="icon"><use href="#i-chart"/></svg></span>
+              <h2 class="card-title" id="t-stats">Статистика</h2>
+              <button type="button" class="btn btn-secondary btn-sm card-action" id="stats-refresh" aria-label="Пересчитать статистику"><svg class="icon"><use href="#i-refresh"/></svg><span>Обновить</span></button>
+            </div>
+            <div class="stats" aria-live="polite">
+              <div class="stat">
+                <div class="stat-icon"><svg class="icon"><use href="#i-send"/></svg></div>
+                <div class="stat-val" id="st-messages"><span class="skel"></span></div>
+                <div class="stat-label">Сообщений отправлено</div>
+              </div>
+              <div class="stat">
+                <div class="stat-icon"><svg class="icon"><use href="#i-chat"/></svg></div>
+                <div class="stat-val" id="st-chats"><span class="skel"></span></div>
+                <div class="stat-label">Чатов</div>
+              </div>
+              <div class="stat">
+                <div class="stat-icon"><svg class="icon"><use href="#i-users"/></svg></div>
+                <div class="stat-val" id="st-invited">0</div>
+                <div class="stat-label">Приглашено друзей</div>
+              </div>
+              <div class="stat">
+                <div class="stat-icon"><svg class="icon"><use href="#i-calendar"/></svg></div>
+                <div class="stat-val small" id="st-since">—</div>
+                <div class="stat-label">С нами с</div>
+              </div>
+            </div>
+            <p class="stats-note" id="stats-note" hidden></p>
+          </article>
+        </div>
+
+        <!-- Ссылки -->
+        <div class="section-label rise" style="--d:300ms">
+          <h2 class="card-title">Быстрые ссылки</h2>
+        </div>
+        <div class="links">
+          <a class="glass link-card rise" style="--d:330ms" id="link-workshop" href="#">
+            <span class="link-icon"><svg class="icon"><use href="#i-wrench"/></svg></span>
+            <span class="link-title">Мастерская <svg class="icon"><use href="#i-arrow"/></svg><span class="soon">Скоро</span></span>
+            <span class="link-text">Рамки, фоны и оформление профиля.</span>
+          </a>
+          <a class="glass link-card rise" style="--d:390ms" id="link-ai" href="#">
+            <span class="link-icon"><svg class="icon"><use href="#i-cpu"/></svg></span>
+            <span class="link-title">Lunox AI <svg class="icon"><use href="#i-arrow"/></svg><span class="soon">Скоро</span></span>
+            <span class="link-text">Ответы на вопросы, переводы и помощь с текстами.</span>
+          </a>
+          <a class="glass link-card rise" style="--d:450ms" id="link-verification" href="#">
+            <span class="link-icon"><svg class="icon"><use href="#i-shield"/></svg></span>
+            <span class="link-title">Верификация <svg class="icon"><use href="#i-arrow"/></svg><span class="soon">Скоро</span></span>
+            <span class="link-text">Подтвердите аккаунт и защитите свой профиль.</span>
+          </a>
+        </div>
+      </section>
+
+      <noscript>
+        <div class="glass fatal" style="margin:40px auto">
+          <h2>Нужен JavaScript</h2>
+          <p>Для работы личного кабинета включите JavaScript в браузере.</p>
+        </div>
+      </noscript>
+    </div>
+  </main>
+
+  <script type="module">
+    /* ============================================================
+       Lunox — кабинет. Firebase: тот же проект, что и в приложении.
+       ============================================================ */
+
+    /* ---- Настройки ---- */
+    const FIREBASE_VERSION = "10.12.2";                 // как в приложении Lunox
+    const FIREBASE_CONFIG = {
+      apiKey: "AIzaSyCQL-Jk4WHAoECmdz0povAcZilOvvtQPR4",
+      authDomain: "lunoh-5453a.firebaseapp.com",
+      projectId: "lunoh-5453a",
+      storageBucket: "lunoh-5453a.firebasestorage.app",
+      messagingSenderId: "785370062580",
+      appId: "1:785370062580:web:4e24ba818086af8103c8a1",
+      measurementId: "G-6H29P4B9S1"
+    };
+
+    /* Адреса быстрых ссылок. Относительный адрес (страница лендинга) проверяется запросом HEAD:
+       если страницы ещё нет, карточка показывается как «Скоро». Замените на нужный URL при необходимости. */
+    const LINKS = {
+      workshop:     "workshop.html",
+      ai:           "https://lunoxapp.online",
+      verification: "verification.html"
+    };
+
+    const APP_URL = "https://lunoxapp.online";
+    const PLANS = [
+      { id: "free",  name: "Free"  },
+      { id: "plus",  name: "Plus"  },
+      { id: "pro",   name: "Pro"   },
+      { id: "max",   name: "Max"   },
+      { id: "ultra", name: "Ultra" }
+    ];
+
+    /* Как в приложении: 5 неудачных попыток входа за 10 минут, автовыход через 24 часа */
+    const LOGIN_ATTEMPT_LIMIT = 5;
+    const LOGIN_ATTEMPT_WINDOW_MS = 10 * 60 * 1000;
+    const SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+    const BANNED_MSG = "Аккаунт заблокирован. Обратитесь в поддержку";
+    const PROTECTED_EMAILS = ["lunox.messenger@gmail.com", "zabelinartem000@gmail.com"];
+
+    /* Статистика: не больше стольких чатов считаем за раз, кэш на 10 минут */
+    const STATS_MAX_CHATS = 300;
+    const STATS_CONCURRENCY = 8;
+    const STATS_TTL_MS = 10 * 60 * 1000;
+
+    /* ---- Утилиты ---- */
+    const $ = (id) => document.getElementById(id);
+    const reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const nf = new Intl.NumberFormat("ru-RU");
+
+    function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+    function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+    function lsDel(k) { try { localStorage.removeItem(k); } catch (e) {} }
+    function ssGet(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } }
+    function ssSet(k, v) { try { sessionStorage.setItem(k, v); } catch (e) {} }
+
+    function toMillis(v) {
+      if (v == null) return null;
+      if (typeof v === "number") return v < 1e12 ? v * 1000 : v;
+      if (typeof v === "string") { const t = Date.parse(v); return isNaN(t) ? null : t; }
+      if (typeof v.toMillis === "function") return v.toMillis();
+      if (typeof v.seconds === "number") return v.seconds * 1000;
+      if (v instanceof Date) return v.getTime();
+      return null;
+    }
+    function fmtDate(ms, withDay) {
+      if (ms == null) return "—";
+      return new Date(ms).toLocaleDateString("ru-RU", withDay
+        ? { day: "numeric", month: "long", year: "numeric" }
+        : { month: "long", year: "numeric" });
+    }
+    function lunaWord(n) {
+      const a = Math.abs(n) % 100, b = a % 10;
+      if (a > 10 && a < 20) return "лун";
+      if (b === 1) return "луна";
+      if (b >= 2 && b <= 4) return "луны";
+      return "лун";
+    }
+    function firstNumber() {
+      for (let i = 0; i < arguments.length; i++) {
+        const n = arguments[i];
+        if (typeof n === "number" && isFinite(n) && n >= 0) return Math.floor(n);
+      }
+      return null;
+    }
+    function initialsOf(name) {
+      const parts = String(name || "").trim().split(/\s+/).filter(Boolean);
+      if (!parts.length) return "L";
+      const a = Array.from(parts[0])[0] || "";
+      const b = parts.length > 1 ? (Array.from(parts[1])[0] || "") : "";
+      return (a + b).toUpperCase() || "L";
+    }
+    function safeHttpsUrl(u) {
+      try { const x = new URL(String(u), location.href); return x.protocol === "https:" ? x.href : ""; } catch (e) { return ""; }
+    }
+    function countTo(el, target) {
+      const prev = Number(el.dataset.v);
+      if (el.dataset.v !== undefined && prev === target) return;
+      el.dataset.v = String(target);
+      if (reduced || target < 2) { el.textContent = nf.format(target); return; }
+      const t0 = performance.now(), D = 900, from = isNaN(prev) ? 0 : prev;
+      (function frame(t) {
+        const p = Math.min(1, (t - t0) / D);
+        el.textContent = nf.format(Math.round(from + (target - from) * (1 - Math.pow(1 - p, 3))));
+        if (p < 1) requestAnimationFrame(frame);
+      })(t0);
+    }
+
+    /* ---- Экраны ---- */
+    const views = ["loading", "fatal", "login", "cabinet"];
+    function showView(name) {
+      views.forEach((v) => { $("view-" + v).hidden = v !== name; });
+      window.scrollTo(0, 0);
+    }
+    function showFatal(text) {
+      if (text) $("fatal-text").textContent = text;
+      showView("fatal");
+    }
+    $("fatal-retry").addEventListener("click", () => location.reload());
+
+    function setLoginNotice(text, ok) {
+      const box = $("login-notice");
+      if (!text) { box.hidden = true; return; }
+      box.className = "notice " + (ok ? "notice-ok" : "notice-error");
+      box.querySelector("use").setAttribute("href", ok ? "#i-check" : "#i-alert");
+      $("login-notice-text").textContent = text;
+      box.hidden = false;
+    }
+    function setBanner(text) {
+      const box = $("cab-banner");
+      if (!text) { box.hidden = true; return; }
+      $("cab-banner-text").textContent = text;
+      box.hidden = false;
+    }
+
+    /* ---- Тарифы ---- */
+    function resolvePlan(d) {
+      let raw = null, until = null;
+      const cands = [d.plan, d.subscription, d.tier, d.subscriptionPlan];
+      for (const c of cands) {
+        if (c == null || raw) continue;
+        if (typeof c === "string") raw = c;
+        else if (typeof c === "object") {
+          raw = c.plan || c.tier || c.id || c.name || null;
+          until = c.until || c.expiresAt || c.expires || c.endsAt || until;
+        }
+      }
+      if (!raw && d.premium === true) raw = "plus";
+      until = until || d.planUntil || d.planExpiresAt || d.subscriptionUntil || d.subscriptionExpiresAt || d.premiumUntil || null;
+
+      const key = String(raw || "free").toLowerCase().replace(/[^a-z]/g, "");
+      const alias = { free: "free", plus: "plus", premium: "plus", pro: "pro", premiumpro: "pro", max: "max", ultra: "ultra" };
+      let id = alias[key] || "free";
+
+      const untilMs = toMillis(until);
+      const expired = id !== "free" && untilMs != null && untilMs < Date.now();
+      if (expired) id = "free";
+      return { id, untilMs, expired };
+    }
+
+    function renderPlan(d) {
+      const plan = resolvePlan(d);
+      const idx = PLANS.findIndex((p) => p.id === plan.id);
+      $("plan-name").textContent = PLANS[idx].name;
+
+      const state = $("plan-state");
+      state.classList.toggle("warn", plan.expired);
+      if (plan.expired) state.textContent = "Срок истёк";
+      else state.textContent = plan.id === "free" ? "Бесплатный тариф" : "Активна";
+
+      $("plan-meta").textContent =
+        plan.expired ? "Подписка закончилась. Возможности вернулись к тарифу Free."
+        : plan.id !== "free" && plan.untilMs ? "Действует до " + fmtDate(plan.untilMs, true)
+        : plan.id === "free" ? "Базовые возможности мессенджера бесплатно и без рекламы."
+        : "";
+
+      const ladder = $("ladder");
+      ladder.textContent = "";
+      PLANS.forEach((p, i) => {
+        const el = document.createElement("div");
+        el.className = "step" + (i < idx ? " reached" : "") + (i === idx ? " current" : "");
+        el.setAttribute("role", "listitem");
+        if (i === idx) el.setAttribute("aria-current", "true");
+        el.textContent = p.name;
+        ladder.appendChild(el);
+      });
+    }
+
+    /* ---- Профиль ---- */
+    function renderProfile(user, d, exists) {
+      d = d || {};
+      const email = user.email || "";
+      const name = String(d.name || user.displayName || (email ? email.split("@")[0] : "") || "Пользователь").trim();
+      const username = String(d.username || "").replace(/^@+/, "").trim();
+      const bio = String(d.bio || "").trim();
+
+      $("hello-name").textContent = name.split(/\s+/)[0] || name;
+      $("p-name").textContent = name;
+
+      const u = $("p-username");
+      u.hidden = !username;
+      u.textContent = username ? "@" + username : "";
+
+      const b = $("p-bio");
+      b.hidden = !bio;
+      b.textContent = bio;
+
+      $("p-email-chip").hidden = !email;
+      $("p-email").textContent = email;
+      $("p-verified").hidden = !(email && user.emailVerified);
+      $("p-unverified").hidden = !(email && !user.emailVerified);
+
+      /* Аватар: картинка поверх инициалов; при ошибке остаются инициалы */
+      const av = $("avatar");
+      $("avatar-initials").textContent = initialsOf(name);
+      const old = av.querySelector("img");
+      const url = safeHttpsUrl(d.avatarUrl);
+      if (old && (!url || old.dataset.src !== url)) old.remove();
+      if (url && !av.querySelector("img")) {
+        const img = new Image();
+        img.alt = "";
+        img.decoding = "async";
+        img.referrerPolicy = "no-referrer";
+        img.dataset.src = url;
+        img.addEventListener("error", () => img.remove());
+        img.src = url;
+        av.appendChild(img);
+      }
+
+      /* Луны */
+      const luna = Math.max(0, Math.floor(Number(d.luna) || 0));
+      countTo($("luna-num"), luna);
+      $("luna-word").textContent = lunaWord(luna) + " на балансе";
+
+      renderPlan(d);
+
+      /* Приглашённые и дата регистрации */
+      countTo($("st-invited"), Math.max(0, Math.floor(Number(d.invitedCount) || 0)));
+      const created = toMillis(d.createdAt) || (user.metadata && Date.parse(user.metadata.creationTime)) || null;
+      $("st-since").textContent = fmtDate(created, false);
+
+      setBanner(exists ? "" : "Профиль Lunox ещё не создан. Откройте приложение и завершите регистрацию.");
+    }
+
+    /* ---- Быстрые ссылки ---- */
+    function setupLinks() {
+      const map = { workshop: "link-workshop", ai: "link-ai", verification: "link-verification" };
+      Object.keys(map).forEach((key) => {
+        const a = $(map[key]);
+        const href = LINKS[key];
+        const disable = () => {
+          a.classList.add("is-disabled");
+          a.setAttribute("aria-disabled", "true");
+          a.setAttribute("tabindex", "-1");
+          a.removeAttribute("href");
+        };
+        if (!href) { disable(); return; }
+        a.setAttribute("href", href);
+        const isAbsolute = /^https?:\/\//i.test(href);
+        if (!isAbsolute && location.protocol.indexOf("http") === 0) {
+          fetch(href, { method: "HEAD", cache: "no-store" })
+            .then((r) => { if (!r.ok) disable(); })
+            .catch(() => {});
+        }
+      });
+    }
+
+    /* ============================================================
+       Firebase
+       ============================================================ */
+    let fb = null;
+    let auth = null, db = null;
+    let stopProfile = null;
+    let currentUser = null;
+    let statsToken = 0;
+
+    async function loadFirebase() {
+      const base = "https://www.gstatic.com/firebasejs/" + FIREBASE_VERSION + "/";
+      const [appM, authM, fsM] = await Promise.all([
+        import(base + "firebase-app.js"),
+        import(base + "firebase-auth.js"),
+        import(base + "firebase-firestore.js")
+      ]);
+      fb = Object.assign({}, appM, authM, fsM);
+      const app = fb.initializeApp(FIREBASE_CONFIG);
+      auth = fb.getAuth(app);
+      db = fb.getFirestore(app);
+    }
+
+    const AUTH_ERRORS = {
+      "auth/invalid-email": "Некорректный email.",
+      "auth/user-not-found": "Неверный email или пароль.",
+      "auth/wrong-password": "Неверный email или пароль.",
+      "auth/invalid-credential": "Неверный email или пароль.",
+      "auth/user-disabled": "Аккаунт отключён. Обратитесь в поддержку.",
+      "auth/too-many-requests": "Слишком много попыток. Попробуйте позже.",
+      "auth/network-request-failed": "Проблема с сетью. Проверьте подключение и попробуйте снова.",
+      "auth/internal-error": "Внутренняя ошибка сервиса. Попробуйте ещё раз через минуту."
+    };
+    function authErrorText(err) {
+      return AUTH_ERRORS[err && err.code] || "Не удалось войти. Попробуйте ещё раз.";
+    }
+
+    /* ---- Защита входа (те же правила, что в приложении) ---- */
+    function attemptRef(email) { return fb.doc(db, "security_login_attempts", email.replace(/\//g, "_")); }
+
+    async function isLocked(email) {
+      try {
+        const s = await fb.getDoc(attemptRef(email));
+        const data = s.exists() ? (s.data() || {}) : {};
+        return !!(data.lockedUntil && Date.now() < data.lockedUntil);
+      } catch (e) { return false; }
+    }
+    async function registerFailure(email) {
+      const ref = attemptRef(email), now = Date.now();
+      let justLocked = false;
+      try {
+        await fb.runTransaction(db, async (tx) => {
+          const s = await tx.get(ref);
+          const data = s.exists() ? (s.data() || {}) : {};
+          let count = data.count || 0, windowStart = data.windowStart || 0;
+          if (!windowStart || now - windowStart > LOGIN_ATTEMPT_WINDOW_MS) { windowStart = now; count = 0; }
+          count += 1;
+          let lockedUntil = data.lockedUntil || null;
+          if (count >= LOGIN_ATTEMPT_LIMIT) { lockedUntil = now + LOGIN_ATTEMPT_WINDOW_MS; justLocked = true; }
+          tx.set(ref, { count, windowStart, lockedUntil }, { merge: true });
+        });
+      } catch (e) {}
+      return justLocked;
+    }
+    async function clearFailures(email) { try { await fb.deleteDoc(attemptRef(email)); } catch (e) {} }
+
+    function normalizeBanEmail(email) {
+      const e = String(email || "").trim().toLowerCase();
+      const at = e.lastIndexOf("@");
+      if (at < 1) return e;
+      const local = e.slice(0, at), domain = e.slice(at + 1);
+      if (domain === "gmail.com" || domain === "googlemail.com") return local.split("+")[0].replace(/\./g, "") + "@gmail.com";
+      return e;
+    }
+    async function isEmailBanned(email) {
+      if (PROTECTED_EMAILS.indexOf(email) !== -1) return false;
+      try {
+        const keys = Array.from(new Set([email, normalizeBanEmail(email)])).map((k) => k.replace(/\//g, "_"));
+        const snaps = await Promise.all(keys.map((k) => fb.getDoc(fb.doc(db, "banned_emails", k))));
+        return snaps.some((s) => s.exists());
+      } catch (e) { return false; }
+    }
+    async function isUidBanned(uid) {
+      try { return (await fb.getDoc(fb.doc(db, "banned_users", uid))).exists(); } catch (e) { return false; }
+    }
+
+    /* ---- Сессия: автовыход через 24 часа ---- */
+    function sessionKey(uid) { return "lunoxCabinetSession:" + uid; }
+    function sessionExpired(uid) {
+      const t = parseInt(lsGet(sessionKey(uid)) || "0", 10);
+      if (!t) { lsSet(sessionKey(uid), String(Date.now())); return false; }
+      return Date.now() - t > SESSION_MAX_AGE_MS;
+    }
+
+    /* ---- Вход ---- */
+    $("login-eye").addEventListener("click", () => {
+      const inp = $("login-password"), btn = $("login-eye");
+      const show = inp.type === "password";
+      inp.type = show ? "text" : "password";
+      btn.classList.toggle("on", show);
+      btn.setAttribute("aria-label", show ? "Скрыть пароль" : "Показать пароль");
+    });
+
+    function setSubmitting(on) {
+      const btn = $("login-submit");
+      btn.disabled = on;
+      $("login-submit-text").textContent = on ? "Входим..." : "Войти";
+    }
+
+    $("login-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      setLoginNotice("");
+      const email = $("login-email").value.trim();
+      const password = $("login-password").value;
+      if (!email || !password) { setLoginNotice("Заполните email и пароль."); return; }
+      if (password.length < 6) { setLoginNotice("Пароль должен быть не короче 6 символов."); return; }
+
+      const lower = email.toLowerCase();
+      setSubmitting(true);
+      try {
+        if (await isLocked(lower)) { setLoginNotice("Слишком много попыток, попробуйте позже"); return; }
+        if (await isEmailBanned(lower)) { setLoginNotice(BANNED_MSG); return; }
+        try {
+          await fb.signInWithEmailAndPassword(auth, email, password);
+        } catch (err) {
+          if (err && err.code === "auth/multi-factor-auth-required") {
+            setLoginNotice("Для аккаунта включено подтверждение по SMS. Войдите через приложение Lunox.");
+            return;
+          }
+          if (await registerFailure(lower)) { setLoginNotice("Слишком много попыток, попробуйте позже"); return; }
+          setLoginNotice(authErrorText(err));
+          return;
+        }
+        clearFailures(lower);
+        $("login-password").value = "";
+      } finally {
+        setSubmitting(false);
+      }
+    });
+
+    $("login-reset").addEventListener("click", async () => {
+      const email = $("login-email").value.trim();
+      if (!email) { setLoginNotice("Введите email, и мы отправим ссылку для сброса пароля."); $("login-email").focus(); return; }
+      try {
+        await fb.sendPasswordResetEmail(auth, email);
+        setLoginNotice("Если аккаунт с таким email существует, мы отправили на него письмо со ссылкой.", true);
+      } catch (err) {
+        if (err && err.code === "auth/invalid-email") setLoginNotice("Некорректный email.");
+        else if (err && err.code === "auth/too-many-requests") setLoginNotice("Слишком много попыток. Попробуйте позже.");
+        else if (err && err.code === "auth/network-request-failed") setLoginNotice("Проблема с сетью. Проверьте подключение и попробуйте снова.");
+        else setLoginNotice("Если аккаунт с таким email существует, мы отправили на него письмо со ссылкой.", true);
+      }
+    });
+
+    $("logout-btn").addEventListener("click", async () => {
+      if (currentUser) lsDel(sessionKey(currentUser.uid));
+      try { await fb.signOut(auth); } catch (e) {}
+    });
+
+    /* ---- Статистика: чаты и сообщения ---- */
+    function statsCacheKey(uid) { return "lunoxCabinetStats:" + uid; }
+
+    function renderStats(s) {
+      const m = $("st-messages"), c = $("st-chats");
+      if (s.messages == null) { m.textContent = "—"; delete m.dataset.v; } else countTo(m, s.messages);
+      if (s.chats == null) { c.textContent = "—"; delete c.dataset.v; } else countTo(c, s.chats);
+
+      const note = $("stats-note");
+      if (s.capped) { note.textContent = "Учтены первые " + STATS_MAX_CHATS + " чатов, реальные числа могут быть больше."; note.hidden = false; }
+      else if (s.messages == null && s.chats == null) { note.textContent = "Не удалось загрузить статистику. Попробуйте обновить позже."; note.hidden = false; }
+      else if (s.messages == null) { note.textContent = "Не удалось посчитать сообщения. Попробуйте обновить позже."; note.hidden = false; }
+      else note.hidden = true;
+    }
+
+    async function computeStats(uid, profile, force) {
+      const token = ++statsToken;
+      const st = profile && typeof profile.stats === "object" && profile.stats ? profile.stats : {};
+      const stored = {
+        messages: firstNumber(st.messages, st.messagesSent, profile && profile.messagesCount, profile && profile.messagesSent, profile && profile.msgCount),
+        chats: firstNumber(st.chats, profile && profile.chatsCount)
+      };
+      if (stored.messages != null && stored.chats != null) { renderStats(stored); return; }
+
+      if (!force) {
+        try {
+          const cached = JSON.parse(ssGet(statsCacheKey(uid)) || "null");
+          if (cached && Date.now() - cached.t < STATS_TTL_MS) {
+            renderStats({ messages: stored.messages != null ? stored.messages : cached.messages, chats: stored.chats != null ? stored.chats : cached.chats, capped: cached.capped });
+            return;
+          }
+        } catch (e) {}
+      }
+
+      $("st-messages").innerHTML = '<span class="skel"></span>'; delete $("st-messages").dataset.v;
+      $("st-chats").innerHTML = '<span class="skel"></span>'; delete $("st-chats").dataset.v;
+      $("stats-note").hidden = true;
+
+      let chats = null, messages = null, capped = false;
+      try {
+        const snap = await fb.getDocs(fb.query(fb.collection(db, "chats"), fb.where("members", "array-contains", uid)));
+        const ids = snap.docs.map((d) => d.id);
+        chats = ids.length;
+        const list = ids.slice(0, STATS_MAX_CHATS);
+        capped = ids.length > STATS_MAX_CHATS;
+
+        if (stored.messages != null) messages = stored.messages;
+        else if (!list.length) messages = 0;
+        else {
+          let total = 0, failed = 0, i = 0;
+          const worker = async () => {
+            while (i < list.length) {
+              const id = list[i++];
+              try {
+                const q = fb.query(fb.collection(db, "chats", id, "messages"), fb.where("senderId", "==", uid));
+                const r = await fb.getCountFromServer(q);
+                total += r.data().count;
+              } catch (e) { failed++; }
+            }
+          };
+          await Promise.all(Array.from({ length: Math.min(STATS_CONCURRENCY, list.length) }, worker));
+          messages = failed === list.length ? null : total;
+        }
+      } catch (e) { /* оставляем прочерки */ }
+
+      if (token !== statsToken) return;   // за это время сменился пользователь или запущен пересчёт
+      if (stored.chats != null) chats = stored.chats;
+      const result = { messages, chats, capped };
+      if (messages != null || chats != null) ssSet(statsCacheKey(uid), JSON.stringify({ t: Date.now(), messages, chats, capped }));
+      renderStats(result);
+    }
+
+    $("stats-refresh").addEventListener("click", () => {
+      if (currentUser) computeStats(currentUser.uid, lastProfile, true);
+    });
+
+    /* ---- Живая подписка на users/{uid} ---- */
+    let lastProfile = null;
+
+    function startProfile(user) {
+      let first = true;
+      stopProfile = fb.onSnapshot(
+        fb.doc(db, "users", user.uid),
+        (snap) => {
+          lastProfile = snap.exists() ? snap.data() : {};
+          renderProfile(user, lastProfile, snap.exists());
+          if (first) { first = false; computeStats(user.uid, lastProfile, false); }
+        },
+        (err) => {
+          console.error("[Lunox] users/" + user.uid + ":", err && (err.code || err.message));
+          renderProfile(user, lastProfile || {}, true);
+          setBanner("Не удалось загрузить данные профиля. Проверьте подключение и обновите страницу.");
+          if (first) { first = false; computeStats(user.uid, lastProfile || {}, false); }
+        }
+      );
+    }
+
+    function stopWatching() {
+      if (stopProfile) { try { stopProfile(); } catch (e) {} stopProfile = null; }
+      lastProfile = null;
+      statsToken++;
+    }
+
+    function resetCabinetView() {
+      ["luna-num", "st-invited"].forEach((id) => { const el = $(id); el.textContent = "0"; delete el.dataset.v; });
+      ["st-messages", "st-chats"].forEach((id) => { const el = $(id); el.innerHTML = '<span class="skel"></span>'; delete el.dataset.v; });
+      $("st-since").textContent = "—";
+      $("stats-note").hidden = true;
+      setBanner("");
+    }
+
+    /* ---- Старт ---- */
+    setupLinks();
+
+    (async function boot() {
+      try {
+        await loadFirebase();
+      } catch (e) {
+        console.error("[Lunox] Firebase SDK не загрузился:", e);
+        showFatal("Не получилось загрузить сервис входа. Проверьте подключение к интернету и попробуйте ещё раз.");
+        return;
+      }
+
+      fb.onAuthStateChanged(auth, async (user) => {
+        stopWatching();
+        currentUser = user || null;
+
+        if (!user) {
+          resetCabinetView();
+          showView("login");
+          return;
+        }
+
+        if (sessionExpired(user.uid)) {
+          lsDel(sessionKey(user.uid));
+          await fb.signOut(auth).catch(() => {});
+          setLoginNotice("Сессия истекла. Войдите снова.");
+          return;
+        }
+        if (await isUidBanned(user.uid)) {
+          lsDel(sessionKey(user.uid));
+          await fb.signOut(auth).catch(() => {});
+          setLoginNotice(BANNED_MSG);
+          return;
+        }
+        if (currentUser !== user) return;     // пока проверяли, состояние сменилось
+
+        setLoginNotice("");
+        showView("cabinet");
+        startProfile(user);
+      }, (err) => {
+        console.error("[Lunox] onAuthStateChanged:", err);
+        showFatal("Не удалось проверить вход. Обновите страницу.");
+      });
+    })();
+  </script>
+</body>
+</html>
